@@ -6,7 +6,7 @@
 -->
 <div align="center">
 
-# 📕 AGENT LESSON BOOK
+# 📕 CROSS-SESSION MEMORY · Agent Lesson Book (错题本)
 
 ### _错题本 · Zero-Dependency Cross-Session Memory for AI Coding Agents_
 
@@ -143,7 +143,7 @@ Agent Lesson Book takes the opposite bet:
 **Step 1 — drop the folder into your project root** (the folder where your `AGENTS.md` lives):
 
 ```bash
-cp -r agent-lesson-book/* your-project/
+cp -r cross-session-memory/* your-project/
 cd your-project
 ```
 

@@ -6,7 +6,7 @@
 -->
 <div align="center">
 
-# 📕 AGENT LESSON BOOK
+# 📕 跨会话记忆 · Agent Lesson Book（错题本）
 
 ### _错题本 · 面向 AI 编程代理的零依赖跨会话记忆_
 
@@ -139,7 +139,7 @@ Agent Lesson Book 押的是相反的注：
 **第一步 —— 把整个文件夹放进你的项目根目录**（即 `AGENTS.md` 所在的目录）：
 
 ```bash
-cp -r agent-lesson-book/* your-project/
+cp -r cross-session-memory/* your-project/
 cd your-project
 ```
 

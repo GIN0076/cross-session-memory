@@ -6,7 +6,7 @@
 -->
 <div align="center">
 
-# 📕 AGENT LESSON BOOK
+# 📕 الذاكرة عبر الجلسات · Agent Lesson Book (错题本)
 
 ### _دفتر الدروس · ذاكرة عابرة للجلسات بلا اعتماديات لوكلاء البرمجة بالذكاء الاصطناعي_
 
@@ -155,7 +155,7 @@
 **الخطوة 1 — انسخ المجلد إلى جذر مشروعك** (المجلد الذي يوجد فيه `AGENTS.md`):
 
 ```bash
-cp -r agent-lesson-book/* your-project/
+cp -r cross-session-memory/* your-project/
 cd your-project
 ```
 

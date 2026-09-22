@@ -22,7 +22,7 @@ After moving machines, after disasters, after anything:
 
 ```bash
 # ① get the repo back into your project root
-cp -r agent-lesson-book/* your-project/ && cd your-project
+cp -r cross-session-memory/* your-project/ && cd your-project
 
 # ② rebuild the bank wiring + injection
 node install/setup.mjs

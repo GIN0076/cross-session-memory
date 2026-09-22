@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="320" viewBox="0 0 1280 320" role="img" aria-label="Agent Lesson Book — zero-dependency cross-session memory for AI coding agents">
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="320" viewBox="0 0 1280 320" role="img" aria-label="Cross-Session Memory — Agent Lesson Book (错题本): zero-dependency cross-session memory for AI coding agents">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#05060f"/>
@@ -49,8 +49,8 @@
   </g>
 
   <!-- title -->
-  <text x="216" y="140" font-family="Arial Black, Segoe UI Black, sans-serif" font-size="72" font-weight="900" letter-spacing="4" fill="url(#neon)" filter="url(#glow)">AGENT LESSON BOOK</text>
-  <text x="219" y="184" font-family="Segoe UI, Arial, sans-serif" font-size="26" font-weight="700" letter-spacing="10" fill="#ffd60a">ZERO-DEPENDENCY CROSS-SESSION MEMORY</text>
+  <text x="212" y="140" font-family="Arial Black, Segoe UI Black, sans-serif" font-size="63" font-weight="900" letter-spacing="3" fill="url(#neon)" filter="url(#glow)">CROSS-SESSION MEMORY</text>
+  <text x="216" y="184" font-family="Segoe UI, Microsoft YaHei, Arial, sans-serif" font-size="24" font-weight="700" letter-spacing="6" fill="#ffd60a">AGENT LESSON BOOK · 错题本 · ZERO-DEPENDENCY</text>
   <text x="219" y="228" font-family="Consolas, Courier New, monospace" font-size="20" fill="#00ffa3">lessons on disk · evidence enforced · auto-injected</text>
 
   <!-- language strip -->

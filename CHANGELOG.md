@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.2 — 2026-09-22
+
+- **Repository renamed** to `cross-session-memory` (GitHub redirects old links automatically).
+- **Dual-name titles, all five languages**: 跨会话记忆 · Agent Lesson Book (错题本) —
+  mechanism name promoted to first position, lesson-book brand kept.
+- Banner artwork retitled accordingly; in-repo clone-path references updated.
+
 ## 0.2.1 — 2026-09-22
 
 Rendering hotfix for GitHub README (no visual regression, no logic change):

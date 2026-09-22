@@ -6,7 +6,7 @@
 -->
 <div align="center">
 
-# 📕 AGENT LESSON BOOK
+# 📕 跨會話記憶 · Agent Lesson Book（錯題本）
 
 ### _錯題本 · Zero-Dependency Cross-Session Memory for AI Coding Agents（AI 程式設計代理的零依賴跨會話記憶）_
 
@@ -143,7 +143,7 @@ Agent Lesson Book（錯題本）押的是完全相反的賭注：
 **步驟 1 —— 把資料夾丟進你的專案根目錄**（也就是 `AGENTS.md` 所在的資料夾）：
 
 ```bash
-cp -r agent-lesson-book/* your-project/
+cp -r cross-session-memory/* your-project/
 cd your-project
 ```
 

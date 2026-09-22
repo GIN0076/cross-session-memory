@@ -6,7 +6,7 @@
 -->
 <div align="center">
 
-# 📕 AGENT LESSON BOOK
+# 📕 Bộ nhớ xuyên phiên · Agent Lesson Book (错题本)
 
 ### _sổ lỗi · Bộ nhớ xuyên phiên, không phụ thuộc, cho các AI Coding Agent_
 
@@ -141,7 +141,7 @@ Agent Lesson Book đặt cược theo hướng hoàn toàn ngược lại:
 **Bước 1 — thả thư mục này vào gốc dự án của bạn** (thư mục chứa `AGENTS.md` của bạn):
 
 ```bash
-cp -r agent-lesson-book/* your-project/
+cp -r cross-session-memory/* your-project/
 cd your-project
 ```
 
