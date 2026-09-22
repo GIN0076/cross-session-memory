@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.1 — 2026-09-22
+
+Rendering hotfix for GitHub README (no visual regression, no logic change):
+
+- **Removed all `<style>` blocks** — GitHub's README sanitizer strips the tag and leaks the
+  CSS as visible text. The look & feel now lives in `assets/banner.svg` (original artwork).
+- Feature icons moved from CSS-styled divs to a plain table with `assets/icons/*.svg`
+  (real files: GitHub also scrubs `data:` image URIs).
+- Legal box de-styled (plain `<div align="left">` + markdown list).
+
 ## 0.2.0 — 2026-09-22
 
 First public release of **Agent Lesson Book** (错题本) — zero-dependency cross-session

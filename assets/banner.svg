@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="320" viewBox="0 0 1280 320" role="img" aria-label="Agent Lesson Book — zero-dependency cross-session memory for AI coding agents">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#05060f"/>
+      <stop offset="0.55" stop-color="#0a0e1f"/>
+      <stop offset="1" stop-color="#10173a"/>
+    </linearGradient>
+    <linearGradient id="neon" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#00e5ff"/>
+      <stop offset="0.38" stop-color="#a86bff"/>
+      <stop offset="0.68" stop-color="#ff2fd6"/>
+      <stop offset="1" stop-color="#ffd60a"/>
+    </linearGradient>
+    <linearGradient id="bookg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ff2fd6"/>
+      <stop offset="1" stop-color="#ff8a00"/>
+    </linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="6" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="softglow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="3" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect width="1280" height="320" rx="18" fill="url(#bg)"/>
+  <circle cx="120" cy="20" r="220" fill="#16204d" opacity="0.55"/>
+  <circle cx="1140" cy="330" r="240" fill="#2a1050" opacity="0.55"/>
+
+  <!-- circuit decor -->
+  <g stroke="#1a2456" stroke-width="2" fill="none">
+    <path d="M0 270 H180 L210 240 H360"/>
+    <path d="M1280 60 H1080 L1050 90 H920"/>
+    <path d="M60 320 V290 H240"/>
+    <path d="M1220 0 V40 H1010"/>
+  </g>
+  <g fill="#00e5ff" opacity="0.9">
+    <circle cx="360" cy="240" r="4"/><circle cx="920" cy="90" r="4"/>
+    <circle cx="240" cy="290" r="3"/><circle cx="1010" cy="40" r="3"/>
+  </g>
+
+  <!-- book mark -->
+  <g transform="translate(96,96)" filter="url(#softglow)">
+    <path d="M0 24 L36 6 L72 24 L72 124 L36 106 L0 124 Z" fill="none" stroke="url(#bookg)" stroke-width="6"/>
+    <path d="M36 20 V102" stroke="#ffd60a" stroke-width="5"/>
+    <circle cx="36" cy="62" r="8" fill="#00e5ff"/>
+  </g>
+
+  <!-- title -->
+  <text x="216" y="140" font-family="Arial Black, Segoe UI Black, sans-serif" font-size="72" font-weight="900" letter-spacing="4" fill="url(#neon)" filter="url(#glow)">AGENT LESSON BOOK</text>
+  <text x="219" y="184" font-family="Segoe UI, Arial, sans-serif" font-size="26" font-weight="700" letter-spacing="10" fill="#ffd60a">ZERO-DEPENDENCY CROSS-SESSION MEMORY</text>
+  <text x="219" y="228" font-family="Consolas, Courier New, monospace" font-size="20" fill="#00ffa3">lessons on disk · evidence enforced · auto-injected</text>
+
+  <!-- language strip -->
+  <g font-family="Segoe UI, Arial, sans-serif" font-size="17" fill="#8fa0c8">
+    <text x="219" y="272">EN</text>
+    <text x="265" y="272">简中</text>
+    <text x="325" y="272">繁中</text>
+    <text x="385" y="272">العربية</text>
+    <text x="465" y="272">Tiếng Việt</text>
+  </g>
+  <g fill="#ff2fd6">
+    <circle cx="252" cy="266" r="3"/><circle cx="312" cy="266" r="3"/>
+    <circle cx="372" cy="266" r="3"/><circle cx="452" cy="266" r="3"/>
+  </g>
+
+  <!-- pixel accents -->
+  <g opacity="0.85">
+    <rect x="1188" y="236" width="14" height="14" fill="#00e5ff"/>
+    <rect x="1212" y="236" width="14" height="14" fill="#ff2fd6"/>
+    <rect x="1236" y="236" width="14" height="14" fill="#ffd60a"/>
+    <rect x="1200" y="260" width="14" height="14" fill="#00ffa3"/>
+    <rect x="1224" y="260" width="14" height="14" fill="#a86bff"/>
+  </g>
+</svg>
