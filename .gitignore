@@ -1,0 +1,9 @@
+# user data — never publish
+.memory/
+
+# runtime telemetry
+stats.jsonl
+
+# tooling
+node_modules/
+*.log

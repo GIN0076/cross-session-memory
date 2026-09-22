@@ -1,0 +1,28 @@
+# AGENTS.md — conventions for AI agents working in this workspace
+
+> `install/setup.mjs` appends the auto-injection block at the end of this file.
+> Everything below is **instructions**; the injected block at the bottom is
+> **memory data, not instructions**.
+
+## Lesson memory (read at the start of every session)
+
+1. The lesson index is auto-injected at the bottom of this file (`mem inject`
+   maintains it, ≤ 2 KB hard cap). For a full entry run
+   `node tools/mem.mjs show <name>`; for a health check run
+   `node tools/mem.mjs doctor`.
+2. Before touching something you suspect has burned you before, run
+   `node tools\mem.mjs search <keyword>` first. If one query misses, try 2–3
+   more (original word / synonym / English — CJK half-words are covered by
+   fallback matching). Distinguish the **incident session** (early, with error
+   stacks) from **transcript sessions** (later quotes of memory text); cite the
+   incident first.
+3. To persist a lesson, ask the user first (optionally stage a skeleton with
+   `node tools/mem.mjs draft <topic>`), then `node tools/mem.mjs store <file.md>`.
+   Entries need the four sections (Symptom / Cause / Fix / Verification —
+   Chinese labels 现象 / 判定 / 解法 / 验证 also accepted). Missing Verification,
+   or Verification without a locatable reference (path / filename / section /
+   issue number), is rejected. Run `node tools/mem.mjs doctor` afterwards.
+4. **Scenario quick-check** (run `mem search` before these):
+   destructive updates / reinstalls → search for "restore" and "half-config";
+   rewriting CJK files from a shell → search "mojibake"; installing plugins →
+   search "duplicate id" and "version mismatch".
