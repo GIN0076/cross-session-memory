@@ -1,0 +1,30 @@
+# @local/dsh-memory — the cross-session memory trio, shipped as one bundle
+# (re-install = one plugin_manager install_bundle call; see plugin/README.md)
+#
+# (1) Session full-text search service: switch it on (this config replaces the
+#     base row's config wholesale — restate every key).
+#     openAt: first-search = import node:sqlite on first search only (quiet boot);
+#     path uses !!js dshHomePath so it follows DSH_HOME instead of a hardcoded user dir.
+- id: session-query-sqlite
+  config:
+    path: !!js dshHomePath('session-search.db')
+    openAt: first-search
+
+# (2) Search-tools row (5 read-only session_* tools). The package resolves from THIS
+#     bundle's node_modules (materialized by junction / pnpm link — see plugin/README.md
+#     "Dependency materialization"; declaring link: deps in the manifest makes
+#     install_bundle fail with ambiguous-install).
+- insert:
+    - id: tool-session-query
+      name: '@deepseek-ai/dsh-tool-session-query'
+
+# (3) This plugin (lesson book: <=2 KB index injection / mem_recall / mem_save / /memory)
+#     memoryCorePath: absolute path to tools/mem-core.mjs of your clone — set it when the
+#     default relative resolution (../../tools/mem-core.mjs from index.js) cannot work in
+#     your install shape. Change it when you move machines or the workspace path changes.
+- insert:
+    - id: memory
+      name: '@local/dsh-memory'
+      config:
+        memoryCorePath: ''
+        maxHits: 8

@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "跨会话记忆（错题本）",
+    "description": "教训本 + 会话全文检索 + 索引自动注入：mem_recall / mem_save 两个工具与 /memory 人类命令，写入经审批，数据为工作区纯 Markdown。"
+  }
+}

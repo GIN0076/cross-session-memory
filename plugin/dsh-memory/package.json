@@ -1,0 +1,17 @@
+{
+  "name": "@local/dsh-memory",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.js",
+    "./package.json": "./package.json",
+    "./locale/*.json": "./locale/*.json"
+  },
+  "files": ["index.js", "cordis.patch.yml", "README.md", "locale/*.json"],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}

@@ -1,5 +1,35 @@
 # Changelog
 
+## 0.3.0 — 2026-09-24 — Plugin Edition (DeepSeek Harness)
+
+The lesson book now runs **natively inside DeepSeek Harness** — same engine, two
+delivery faces (CLI + plugin).
+
+### Added
+- **`plugin/dsh-memory/` (`@local/dsh-memory` Harness bundle)**
+  - memory index auto-injected into every session prompt as a system-prompt section
+    (≤ 2 KB hard cap, fail-silent degrade; module-level engine cache so the injection
+    body recovers as soon as the engine loads — and degrades to a pointer note, never
+    to a blocked session);
+  - `mem_recall` model tool — lesson-book search (IDF + CJK bigram, half-words hit)
+    merged with full-text session search, plus a CJK title-level fallback;
+  - `mem_save` model tool — the full write gate (four sections + locatable reference +
+    secret scan + near-duplicate interception) behind **human approval**:
+    `tools/pre-execute` always returns `ask`;
+  - `/memory` human command — `recall | save | doctor | review | map | stats | draft`
+    (a human typing the command is the approval);
+  - locale metadata (en / zh).
+- **`tools/mem-core.mjs`** — shared engine facade, the single entry for plugin & CLI
+  (`promptIndexText` / `formatRecall` / `saveAndSync` + full re-export of `mem.mjs`).
+- **`install/smoke.mjs`** — zero-dependency end-to-end smoke (syntax, setup E2E in an
+  isolated copy, write gates, search, injection budget, doctor).
+- **`plugin/README.md`** — install, dependency materialization (junction / link
+  recipe), configuration, acceptance checklist, known limits.
+
+### Docs
+- READMEs refreshed in five languages: Plugin Edition quick start, architecture
+  (two faces, one engine), updated feature/commands/security tables.
+
 ## 0.2.2 — 2026-09-22
 
 - **Repository renamed** to `cross-session-memory` (GitHub redirects old links automatically).

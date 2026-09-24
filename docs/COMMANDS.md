@@ -52,3 +52,18 @@ node tools/mem.mjs global-sync            # refresh the cross-workspace mirror
 | `DSH_MEMORY_GLOBAL_DIR` | Override the global mirror location (default `~/.memory-global`) |
 | `MEM_COUNT_DOC` | Path (relative to `tools/`) of a status doc whose `（N 条）` / `entries (N)` count is checked for drift |
 | `MEM_CARRIERS` | `file::keyword;file::keyword` — extra convention carriers checked by `doctor` |
+
+## Harness plugin surfaces (0.3.0)
+
+Inside DeepSeek Harness the same engine is reached without a shell
+(details: [`../plugin/README.md`](../plugin/README.md)):
+
+| Surface | What it does |
+|---|---|
+| prompt section | lesson index ≤ 2 KB every turn (fail-degrade) |
+| `mem_recall <query> [limit]` | lesson-book search ∪ full-text session search |
+| `mem_save <content> [--overwrite] [--force]` | write one lesson — always asks for human approval first |
+| `/memory recall <q>` | search, typed by a human |
+| `/memory save <file.md>` | store an entry (typing it is the approval) |
+| `/memory doctor` | same report as `doctor` |
+| `/memory review <name>` / `map [name]` / `stats [days]` / `draft [topic]` | same as the CLI commands |

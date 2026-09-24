@@ -93,3 +93,15 @@ the target. Four layers of defense here:
 `mem stats` exists because "is this thing even working?" must be answered with **numbers**
 (search hit-rate, usage counts), not vibes. Run it. If the numbers are bad, fix retrieval
 before adding machinery.
+
+## 9. The plugin layer (0.3.0, DeepSeek Harness)
+
+The engine gained a second delivery face without gaining a second brain: `tools/mem-core.mjs`
+is a thin facade (index rendering · recall formatting · write + sync) shared verbatim by the
+CLI and the `plugin/dsh-memory` bundle. In the Harness the index rides a **prompt section**
+instead of `AGENTS.md` — same budget cap, same silent fail-degrade: the injection body
+re-renders from entries and falls back to a pointer note, so a broken memory can never block
+a session. `mem_recall` additionally unions full-text **session** search, which the plain CLI
+has no access to. And "human-approved writes" hard rule (§4.3) is enforced one layer deeper:
+`mem_save` returns `ask` on **every** call through `tools/pre-execute`, so even an
+agent-initiated write lands only after a human approves.

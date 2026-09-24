@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Cross-session Memory (Lesson Book)",
+    "description": "Lesson book + full-text session search + auto-injected index: mem_recall / mem_save tools and the /memory human command. Writes require approval; data stays plain Markdown in the workspace."
+  }
+}
