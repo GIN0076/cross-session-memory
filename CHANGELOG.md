@@ -1,5 +1,26 @@
 # Changelog
 
+## Plugin 1.0.1 — 2026-09-29 — DeepSeek Harness 0.2.0 compatibility
+
+The bundle was re-verified against Harness **0.2.0-rc.1** after a clean reinstall.
+Every contract it uses is unchanged (`defineTool`, `PromptSection` /
+`TOOL_SESSION_QUERY`, `PreToolDecision`, `CommandDefinition`, `sessionQuery`, the
+`dshHomePath` `!!js` loader helper, `dsh.bundle.patch`), and the plugin has no
+client half, so no slot registration moved. Two call sites sat outside the 0.2.0
+vocabulary and are fixed here:
+
+### Fixed
+- **`mem_save` pending-call presenter: `kind: 'write'` → `'edit'`** — 0.2.0's
+  `ToolCallKind` is `read | edit | delete | move | search | execute | fetch | other`;
+  `write` was outside the documented contract (the presenter must never throw, so it
+  silently fell back — but the intent was wrong either way).
+- **`mem_save` approval prompt now carries `displayReason: { en, zh }`** — 0.2.0
+  splits an `ask` decision into `reason` (the audited string kept in the approval log)
+  and `displayReason` (the localized copy the approval panel renders, mandatory `en`).
+
+### Changed
+- `plugin/dsh-memory` package version `1.0.0` → `1.0.1`.
+
 ## 0.3.0 — 2026-09-24 — Plugin Edition (DeepSeek Harness)
 
 The lesson book now runs **natively inside DeepSeek Harness** — same engine, two

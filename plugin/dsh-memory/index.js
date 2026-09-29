@@ -81,7 +81,17 @@ export function apply(ctx, config = {}) {
   // ── (3) write approval: mem_save always asks (practices: a decision that waits for a human returns ask) ──
   ctx.on('tools/pre-execute', async (exec, next) => {
     if (exec.name === 'mem_save') {
-      return { kind: 'ask', reason: 'mem_save will write into the cross-session memory (lesson book). Confirm this lesson deserves long-term keeping.' }
+      // Harness 0.2.0 splits the ask decision: `reason` is the audited string (approval
+      // log), `displayReason` is the localized copy the approval panel renders (it needs
+      // a mandatory `en` key and prefers displayReason over reason when both exist).
+      return {
+        kind: 'ask',
+        reason: 'mem_save will write into the cross-session memory (lesson book). Confirm this lesson deserves long-term keeping.',
+        displayReason: {
+          en: 'mem_save is about to write into the cross-session lesson book (.memory/); approve only if this lesson is worth keeping.',
+          zh: 'mem_save 将写入跨会话记忆库（教训本 .memory/），请确认这条教训值得长期保留。',
+        },
+      }
     }
     return next()
   })
@@ -174,7 +184,7 @@ export function apply(ctx, config = {}) {
       for (const w of result.supWarn ?? []) lines.push(`⚠ ${w}`)
       return lines.join('\n')
     },
-    presentCall: () => ({ card: 'generic', title: 'mem_save: write into the lesson book (approval pending)', kind: 'write' }),
+    presentCall: () => ({ card: 'generic', title: 'mem_save: write into the lesson book (approval pending)', kind: 'edit' }),
   }))
 
   // ── (4) the /memory human command (typing it by hand IS the approval) ──
