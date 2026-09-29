@@ -1,0 +1,23 @@
+{
+  "name": "@local/dsh-memory",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "description": "Cross-session lesson book (agent wrong-answer notebook) for DeepSeek Harness: evidence-enforced Markdown lessons, injected index, mem_recall / mem_save tools and /memory commands.",
+  "exports": {
+    ".": "./plugin/dsh-memory/index.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "plugin",
+    "tools"
+  ],
+  "dependencies": {
+    "@deepseek-ai/dsh-tool-session-query": "^0.1.7-rc.2"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./plugin/dsh-memory/cordis.patch.yml"
+    }
+  }
+}
