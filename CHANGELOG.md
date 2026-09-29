@@ -20,6 +20,11 @@ vocabulary and are fixed here:
 
 ### Changed
 - `plugin/dsh-memory` package version `1.0.0` → `1.0.1`.
+- **Root manifest** (the unit `dsh plugin add github:GIN0076/cross-session-memory`
+  installs) dependency `@deepseek-ai/dsh-tool-session-query` `^0.1.7-rc.2` →
+  `^0.2.0-rc.1`. The old range resolved to 0.1.7-rc.2 while the Harness runtime is
+  0.2.0-rc.1, shipping a lower-generation package into the tool-session-query row,
+  which must match the runtime generation.
 
 ## 0.3.0 — 2026-09-24 — Plugin Edition (DeepSeek Harness)
 
