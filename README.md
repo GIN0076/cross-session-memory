@@ -1,22 +1,22 @@
 <!--
   ═══════════════════════════════════════════════════════════════
-     AGENT LESSON BOOK · 错题本 · SỔ LỖI · دفتر الدروس
-     colorful header banner (self-hosted OFL fonts + system CJK/AR/VI)
+     AGENT LESSON BOOK · 错题本
+     colorful header banner (self-hosted OFL fonts + system CJK)
   ═══════════════════════════════════════════════════════════════
 -->
 <div align="center">
 
 # 📕 CROSS-SESSION MEMORY · Agent Lesson Book (错题本)
 
-### _错题本 · Zero-Dependency Cross-Session Memory for AI Coding Agents_
+### _Zero-Dependency Cross-Session Memory for AI Coding Agents_
 
 **Lessons on disk. Evidence enforced. Auto-injected into every session.**
 
-<sub>🌐 **English** · <a href="./README.zh-CN.md">简体中文</a> · <a href="./README.zh-TW.md">繁體中文</a> · <a href="./README.ar.md">العربية</a> · <a href="./README.vi.md">Tiếng Việt</a></sub>
+<sub>🌐 **English** · <a href="./README.zh-CN.md">简体中文</a></sub>
 
 </div>
 
-<img src="./assets/banner.svg" alt="Agent Lesson Book — 错题本 · sổ lỗi · دفتر الدروس" width="100%">
+<img src="./assets/banner.svg" alt="Agent Lesson Book — 错题本" width="100%">
 
 
 <!-- Styling note: GitHub README renders no <style>; the look & feel lives in assets/banner.svg (self-hosted OFL fonts in assets/fonts/ are available for forks/themes). -->
@@ -27,13 +27,14 @@
   <img alt="runtime Node 18+" src="https://img.shields.io/badge/runtime-Node%20%E2%89%A5%2018-ff2fd6?style=for-the-badge&labelColor=10173a">
   <img alt="memory budget 2KB" src="https://img.shields.io/badge/memory%20budget-2KB-ffd60a?style=for-the-badge&labelColor=10173a">
   <img alt="commands 23" src="https://img.shields.io/badge/commands-23-a86bff?style=for-the-badge&labelColor=10173a">
+  <img alt="tests 70" src="https://img.shields.io/badge/tests-70%20green-22b07d?style=for-the-badge&labelColor=10173a">
   <img alt="plugin DeepSeek Harness" src="https://img.shields.io/badge/plugin-DeepSeek%20Harness-00ffa3?style=for-the-badge&labelColor=10173a">
 </div>
 
 > ### 🧠 `TOOLS/MEM.MJS` · **23 COMMANDS** · `NODE ZERO-DEP`
 > **`index · inject · list · search · show · store · forget · review · draft · drafts · approve · reject · write-mode · explain · verify · feedback · map · gather · conflicts · resolve · global-sync · stats · doctor`**
 >
-> ### 🧩 `PLUGIN/DSH-MEMORY` · **DEEPSEEK HARNESS PLUGIN** (new in 0.3.0)
+> ### 🧩 `PLUGIN/DSH-MEMORY` · **DEEPSEEK HARNESS PLUGIN**
 > **`mem_recall` · `mem_save` · `/memory recall|save|doctor|review|map|conflicts|resolve|explain|verify|feedback|stats|draft|drafts|approve|reject|write-mode`**
 
 <details>
@@ -50,10 +51,10 @@
    ║      💾 plain text        🔍 findable        🛡 audited      ║
    ║      📥 ≤2KB injected     🔁 survives updates                ║
    ╚══════════════════════════════════════════════════════════════╝
-         ┌──────┐   ┌──────┐   ┌──────┐   ┌──────┐   ┌──────┐
-         │ grep │   │ IDF  │   │ alias│   │ grams│   │ stats│
-         └──────┘   └──────┘   └──────┘   └──────┘   └──────┘
-               ✦ zero dependencies · pure Node.js ✦
+        ┌──────┐   ┌──────┐   ┌──────┐   ┌──────┐   ┌──────┐
+        │ grep │   │ IDF  │   │ alias│   │ grams│   │ stats│
+        └──────┘   └──────┘   └──────┘   └──────┘   └──────┘
+              ✦ zero dependencies · pure Node.js ✦
 ```
 
 </details>
@@ -69,23 +70,51 @@
 </tr>
 </table>
 
-**Contents** — [What's new in 0.3.0](#-whats-new-in-030) · [Why](#-why-another-memory-project) · [Features](#-feature-galaxy) · [Two ways to run](#-two-ways-to-run) · [Entry format](#-entry-format) · [Commands](#%EF%B8%8F-command-palette) · [Architecture](#%EF%B8%8F-architecture-two-faces-one-engine) · [Security](#-security--trust-model) · [Roadmap](#-roadmap)
+**Contents** — [What's in v0.5.0](#-whats-in-v050) · [Why](#-why-another-memory-project) · [Features](#-feature-galaxy) · [Two ways to run](#-two-ways-to-run) · [Entry format](#-entry-format) · [Commands](#%EF%B8%8F-command-palette) · [Architecture](#%EF%B8%8F-architecture-two-faces-one-engine) · [Security](#-security--trust-model) · [Roadmap](#-roadmap)
 
 ---
 
-## 🆕 What's new in 0.3.0
+## 🆕 What's in v0.5.0
 
-**Plugin Edition.** The lesson book now runs natively inside **DeepSeek Harness** —
-same zero-dependency engine, two delivery faces:
+The lesson book runs standalone **and** natively inside **DeepSeek Harness** — one
+zero-dependency engine, two delivery faces, plus a read-only settings card in the
+Harness UI.
 
-| | Standalone CLI (0.2.x) | Harness plugin (0.3.0) |
+| | Standalone CLI | Harness plugin |
 |---|---|---|
 | Memory in context | `mem inject` block in `AGENTS.md` | prompt section every turn (≤ 2 KB, fail-degrade) |
 | Search from the agent | run `mem.mjs search` via shell | `mem_recall` tool (lesson book **+ session full-text**) |
-| Write a lesson | `mem.mjs store` via shell | `mem_save` tool — **always asks for human approval** |
-| Human maintenance | `mem.mjs` commands | `/memory recall\|save\|doctor\|review\|map\|conflicts\|resolve\|explain\|verify\|feedback\|stats\|draft\|drafts\|approve\|reject\|write-mode` |
+| Write a lesson | `mem.mjs store` via shell | `mem_save` tool — gated by the write mode |
+| Human maintenance | `mem.mjs` commands | `/memory …` (16 subcommands) |
+| At a glance | `mem doctor` | **read-only Settings card** — status, confidence mix, recall hit-rate, entry search |
 
-Full details in [`CHANGELOG.md`](./CHANGELOG.md) and [`plugin/README.md`](./plugin/README.md).
+**What landed recently** (see [`CHANGELOG.md`](./CHANGELOG.md)):
+
+- **Read-only Settings card** — a `settings.section` view of index budget, entry count,
+  write mode, confidence mix, draft/conflict counts, 7-day recall hit-rate, recent entries
+  and an entry search. It is **read-only by design**: data comes from a same-origin route
+  with only `status` / `search`, never a write path; if it can't load, it degrades to a
+  pointer back to `/memory`, which stays fully functional.
+- **Write modes** — `write-mode approval | auto-draft | auto-low-risk | off`. `approval`
+  (the default) asks a human on every model write; the auto modes let a well-gated engine
+  write without prompts, and `off` blocks model writes outright. Human commands are never
+  gated.
+- **Confidence & lifecycle** — every entry derives `verified / provisional / needs-review /
+  stale / disputed` from evidence, freshness and conflicts; `explain <name>` shows *why* an
+  entry is trusted, `verify` runs whitelisted re-checks, and `review` keeps it honest on a
+  90-day clock.
+- **Two-stage recall + feedback loop** — candidate search reranks by confidence, freshness
+  and what you actually adopted (`feedback`), so the book learns which lessons proved useful.
+- **Conflict adjudication** — `conflicts` lists contradicting pairs; `resolve <loser> --prefer
+  <winner> --reason …` records a verdict while **keeping both entries** (the loser derives
+  to `stale`, nothing is hard-deleted).
+- **Scales to 1,000 entries** — the injected index stays ≤ 2 KB (token cost unchanged); an
+  inverted index plus an mtime parse cache keep search fast (≈ 1 ms steady-state, flat as
+  the book grows).
+- **Privacy switches** — `DSH_MEMORY_TELEMETRY=off` stops local telemetry writes; a `scanPii`
+  gate refuses entries containing an email address or mainland mobile number.
+- **Hardened release** — 70 unit tests (14 files), a zero-dependency release smoke, and a
+  GitHub Actions workflow (`sync-release --check` + tests + smoke + syntax).
 
 ---
 
@@ -110,7 +139,7 @@ Agent Lesson Book takes the opposite bet:
   plugin injects it into the prompt directly. Every new session starts with memory already in
   context. **Fail-safe: over budget → lines drop; anything breaks → silent degrade to plain
   conventions. Never blocks a session.**
-- 🛡 **Anti-poisoning by design** — human-approved writes, secret-pattern rejection,
+- 🛡 **Anti-poisoning by design** — human-approved writes, secret- and PII-pattern rejection,
   near-duplicate interception, source stamps, and full git rollback.
   (Compare: OWASP ASI06 "memory & context poisoning" — auto-writing memory systems are the target.)
 
@@ -124,14 +153,18 @@ Agent Lesson Book takes the opposite bet:
 | 🔗 | Evidence-chain gate | No proof → no entry. Kills "I remember something like that" |
 | 📥 | `mem inject` auto-injection | Memory without relying on agent discipline |
 | 🧩 | **Native Harness plugin** | Index in the prompt every turn — not even AGENTS.md discipline needed |
+| 🖥 | **Read-only Settings card** | Status, confidence, recall hit-rate and search at a glance — no write buttons |
 | 🔌 | **`mem_recall` tool** | Lesson book ∪ **past-session full-text** in one call |
-| ✍️ | **`mem_save` tool + approval** | Writes always ask a human first — even from inside the agent |
-| 💬 | **`/memory` command** | Maintenance from the chat box: recall / save / doctor / review / map / conflicts / resolve / explain / verify / feedback / stats / draft / drafts / approve / reject / write-mode |
+| ✍️ | **`mem_save` tool** | Writes gated by the write mode; `approval` always asks a human first |
+| 🎛 | **Write modes** | `approval / auto-draft / auto-low-risk / off` — tune prompts vs automation; humans never gated |
+| 💬 | **`/memory` command** | 16 subcommands from the chat box; typing one **is** the approval |
 | 🎯 | IDF-ranked 3-way search | Literal ∪ CJK bigram/unigram ∪ `aliases` synonyms; rare terms win |
-| ✂️ | Snippets on hits | Judge relevance without opening files |
+| 🔁 | **Two-stage recall + feedback** | Candidates rerank by confidence, freshness and what you actually used |
+| 🔍 | **`explain` / `verify`** | See *why* an entry is trusted; re-run whitelisted evidence checks |
 | ♻️ | `supersedes` auto-archive | Lessons evolve; old versions retire to `archive/` automatically |
-| 🗺 | `mem map` text knowledge graph | Supersession chains + related links + review timeline |
-| 🍱 | `mem gather` meeting pack | Related entries bundled ≤8 KB for synthesis |
+| ⚖️ | **Conflict adjudication** | `conflicts` lists contradictions; `resolve` records a verdict, both sides kept |
+| 🗺 | `mem map` text knowledge graph | Six sections: supersede · causal · conflicts · expired · timeline · root causes |
+| 🍱 | `mem gather` evidence pack | Confidence-tiered evidence for synthesis — **never writes a conclusion** |
 | 📝 | `mem draft` pipeline | Skeleton first, human approval, then store |
 | ⏰ | `review` due dates | Memory rots — 90-day checks keep it honest |
 | 🚫 | Near-duplicate interception | Two sessions, same lesson → one entry, not two |
@@ -150,16 +183,18 @@ Agent Lesson Book takes the opposite bet:
 <tr><td>Runtime</td><td><code>Node.js ≥ 18</code></td><td>🟢 zero dependencies · zero services · zero API cost</td></tr>
 <tr><td>Storage</td><td><code>.memory/</code> plain markdown</td><td>🧾 human-readable · diffable · git-friendly</td></tr>
 <tr><td>Index</td><td><code>MEMORY.md</code> ≤ 60 lines / 2 KB</td><td>📥 hard-capped, overflow listed in footer</td></tr>
-<tr><td>Retrieval</td><td>IDF + CJK n-gram + aliases</td><td>🎯 multi-strategy without a vector store</td></tr>
-<tr><td>Delivery</td><td><code>AGENTS.md</code> block <b>+</b> Harness plugin</td><td>🔌 two faces over one engine (<code>mem-core.mjs</code>)</td></tr>
-<tr><td>Safety</td><td>approval · secret scan · Jaccard gate</td><td>🛡 four-layer defense (OWASP ASI06 aware)</td></tr>
+<tr><td>Scale</td><td>up to 1,000 entries</td><td>⚡ injected index stays 2 KB; search scales via inverted index</td></tr>
+<tr><td>Retrieval</td><td>IDF + CJK n-gram + aliases, two-stage rerank</td><td>🎯 multi-strategy without a vector store</td></tr>
+<tr><td>Delivery</td><td><code>AGENTS.md</code> block <b>+</b> Harness plugin + Settings card</td><td>🔌 two faces over one engine (<code>mem-core.mjs</code>)</td></tr>
+<tr><td>Safety</td><td>approval · secret/PII scan · Jaccard gate</td><td>🛡 four-layer defense (OWASP ASI06 aware)</td></tr>
+<tr><td>Quality</td><td>70 tests · release smoke · CI</td><td>🧪 every change is checked before it ships</td></tr>
 </table>
 
 **The three hard rules** (from `docs/DESIGN.md`):
 
 1. **Budget cap** — injection = the index verbatim ≤ 2 KB; over budget → drop lines.
 2. **Fail-degrade** — unreadable index → silent fallback to pointer conventions. Sessions never block.
-3. **Human-approved writes** — the tool proposes (`draft` / `mem_save`), the human disposes (`store` / approval).
+3. **Human-approved writes** — the tool proposes (`draft` / `mem_save`), the human disposes (`store` / approval). The auto write-modes are opt-in.
 
 ---
 
@@ -198,16 +233,16 @@ node install/setup.mjs --with-sample
 node install/smoke.mjs        # E2E: gates · search · injection budget · doctor
 ```
 
-### B · DeepSeek Harness plugin — native tools + `/memory`
+### B · DeepSeek Harness plugin — native tools + `/memory` + Settings card
 
 ```
 plugin_manager → install_bundle → target = <clone>/plugin/dsh-memory
 ```
 
 That one command mounts the whole trio (prompt injection · `mem_recall` / `mem_save` ·
-`/memory`) and survives destructive reinstalls. Two dependencies are materialized by
-junction/link first — exact recipe, configuration keys (`memoryCorePath`, `maxHits`) and
-a six-item acceptance checklist live in [`plugin/README.md`](./plugin/README.md).
+`/memory`) plus the read-only Settings card. Exact dependency recipe, configuration keys
+(`memoryCorePath`, `maxHits`) and a six-item acceptance checklist live in
+[`plugin/README.md`](./plugin/README.md).
 
 **Your first lesson** (ask the user's consent first, per convention):
 
@@ -266,7 +301,7 @@ Verification：Re-test returns 1898 → 1898 byte-identical (see `tools/mem.mjs`
 | `list` | list all entries with health flags |
 | `search <q> [n] [--two-stage]` | IDF 3-way search with snippets; `--two-stage` reranks by confidence / freshness / feedback |
 | `show <name>` | print one full entry |
-| `store <file\|-> [--overwrite] [--force] [--model]` | validate & store (secrets/dupes/evidence gated) |
+| `store <file\|-> [--overwrite] [--force] [--model]` | validate & store (secrets/PII/dupes/evidence gated) |
 | `forget <name>` | archive, never hard-delete |
 | `review <name>` | refresh verification date, push review +90 days |
 | `draft [topic]` | generate a four-section skeleton (lands in `drafts/`) |
@@ -291,10 +326,9 @@ Verification：Re-test returns 1898 → 1898 byte-identical (see `tools/mem.mjs`
 |---|---|
 | prompt section | lesson index ≤ 2 KB, every turn, fail-degrade |
 | `mem_recall <query> [limit]` | lesson book ∪ session full-text, merged & ranked |
-| `mem_save <content>` | write one lesson — **always asks for approval first** |
-| `/memory recall <q>` | same search, typed by a human |
-| `/memory save <file.md>` | store an entry (typing it is the approval) |
-| `/memory doctor \| review \| map \| conflicts \| resolve \| explain \| verify \| feedback \| stats \| draft \| drafts \| approve \| reject \| write-mode` | same maintenance face as the CLI |
+| `mem_save <content>` | write one lesson — gated by the write mode (`approval` always asks) |
+| `/memory <subcommand>` | 16 maintenance subcommands — typing one **is** the approval |
+| Settings card | read-only status · confidence · hit-rate · search |
 
 ---
 
@@ -314,8 +348,8 @@ Verification：Re-test returns 1898 → 1898 byte-identical (see `tools/mem.mjs`
                                     │          │
                         CLI face ───┘          └─── plugin/dsh-memory
                      (AGENTS.md block)          (Harness: prompt section
-                                                 mem_recall · mem_save
-                                                 · /memory)
+                                                mem_recall · mem_save
+                                                · /memory · Settings card)
 ```
 
 Hard rules hold across both faces: budget cap, fail-degrade, human-approved writes.
@@ -326,13 +360,14 @@ Hard rules hold across both faces: budget cap, fail-degrade, human-approved writ
 
 ```
 cross-session-memory/
-├── README.md · README.zh-CN.md · README.zh-TW.md · README.ar.md · README.vi.md
+├── README.md · README.zh-CN.md
 ├── LICENSE · CHANGELOG.md · .gitignore
 ├── tools/
 │   ├── mem.mjs            # the 23-command engine (single file, zero deps)
 │   └── mem-core.mjs       # shared facade — the single entry for plugin & CLI
 ├── plugin/dsh-memory/     # DeepSeek Harness bundle (Plugin Edition)
 │   ├── index.js           #   prompt injection · mem_recall · mem_save · /memory
+│   ├── client.js          #   read-only Settings card (settings.section)
 │   ├── cordis.patch.yml   #   loader rows + config (memoryCorePath, maxHits)
 │   ├── locale/            #   en / zh metadata
 │   └── README.md          #   install · dependency materialization · acceptance
@@ -352,29 +387,30 @@ cross-session-memory/
 | Layer | Mechanism | Defends against |
 |---|---|---|
 | 1️⃣ Provenance | `originSessionId` + `created/verified` stamps | unattributed claims |
-| 2️⃣ Approval | human consent + `store` gate + **`mem_save` always asks** | agent over-eager writing |
-| 3️⃣ Detection | secret patterns · Jaccard ≥0.6 gate · evidence chain | leaks, duplication, rumor |
+| 2️⃣ Approval | human consent + `store` gate + write mode (`approval` asks **every** call) | agent over-eager writing |
+| 3️⃣ Detection | secret patterns · PII gate · Jaccard ≥0.6 gate · evidence chain | leaks, PII, duplication, rumor |
 | 4️⃣ Integrity | git rollback (local-only recommended) | everything else |
 
 > Memory poisoning is a recognized attack class (OWASP **ASI06**). Auto-writing memory systems
-> are the target. This book writes **nothing** without a human — in the plugin, `mem_save`
-> returns `ask` on **every** call, and a `never` approval policy refuses it outright.
+> are the target. The default write mode **never** writes without a human — `mem_save` returns
+> `ask` on **every** call, a `never` approval policy refuses it outright, and the Settings card
+> exposes **no write buttons** at all.
 
 ---
 
 ## 🗺 Roadmap
 
-- 🧩 **0.3.x** — plugin polish: `tools/result` write telemetry, nightly review timer, strict wiki-link validation (M2)
-- 🌱 **0.4** — session CJK search fallback patch · client memory panel · `ctx.skills` · bigram synonym packs · `mem map` SVG export (M3)
-- 🌍 **later** — optional multi-book federation · CLI i18n (`--lang`)
+- 🔌 **Now (0.5.x)** — everything above is shipped; maintenance and polish only.
+- 🌱 **later** — optional multi-book federation · more CJK session-search fallbacks ·
+  optional SQLite FTS5 recall (stays off the zero-dependency default).
 - 🚫 **Won't do** — vector stores · gateways · silent auto-write. Triggers documented in `docs/DESIGN.md`.
 
 ---
 
 ## 🤝 Contributing
 
-PRs welcome — especially **new lesson packs** (sanitized!) and README translations.
-Run `node install/smoke.mjs` green before submitting. All code must stay **zero-dependency**.
+PRs welcome — especially **new lesson packs** (sanitized!). Run `node install/smoke.mjs` green
+before submitting. All code must stay **zero-dependency**.
 
 ---
 
@@ -389,7 +425,7 @@ Run `node install/smoke.mjs` green before submitting. All code must stay **zero-
   experience at a point in time — verify against current vendor documentation before deciding.
 - **Fonts:** Orbitron, Space Grotesk and IBM Plex Mono are bundled under the **SIL Open Font
   License 1.1** — full license texts in [`assets/fonts/licenses/`](./assets/fonts/licenses/).
-  CJK / Arabic / Vietnamese text uses your system fonts (nothing bundled).
+  CJK text uses your system fonts (nothing bundled).
 - **No warranty.** Software provided as-is under the MIT License — see [`LICENSE`](./LICENSE).
 
 </div>
@@ -402,7 +438,7 @@ Run `node install/smoke.mjs` green before submitting. All code must stay **zero-
   ╔═══════════════════════════════════════════════════════════╗
   ║   ★  L E S S O N S   L I V E   O N   D I S K  ★          ║
   ║      Evidence in, garbage out — never.                    ║
-  ║      错题本 · sổ lỗi · دفتر الدروس · lesson book          ║
+  ║      错题本 · lesson book                                 ║
   ╚═══════════════════════════════════════════════════════════╝
 ```
 

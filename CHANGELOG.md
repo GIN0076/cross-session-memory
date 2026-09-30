@@ -1,5 +1,23 @@
 # Changelog
 
+## Plugin 1.2.1 / Bundle 0.5.1 — 2026-09-30 — README rewritten, bilingual-only docs
+
+Documentation pass: both READMEs rewritten to describe what v0.5.0 actually ships
+(honestly, without hype), and the document set is trimmed to two languages.
+
+### Changed
+- **README rewritten (English + 简体中文)** — the "What's new" section now covers the
+  current surface instead of 0.3.0: the read-only Settings card, the four write modes,
+  confidence/lifecycle + `explain`/`verify`, two-stage recall with the feedback loop,
+  conflict adjudication, the 1,000-entry ceiling with inverted-index search, privacy
+  switches, and the test/CI baseline. Feature table, tech-aura table, architecture and
+  repository tree updated to match; roadmap no longer lists shipped work. Numbers are the
+  measured ones (23 commands, 70 tests, ~1 ms steady-state search) — no embellishment.
+- **Docs trimmed to two languages** — `README.zh-TW.md`, `README.ar.md` and `README.vi.md`
+  are removed; the language switcher and repository tree reference only English and
+  简体中文. The docs-alignment test now pins the two-language set and asserts the language
+  links point at files that exist (no dangling references).
+
 ## Plugin 1.2.0 / Bundle 0.5.0 — 2026-09-30 — entry cap 1000, search inverted index, English tail
 
 Follow-up to 0.4.0: performance work that matters at scale, a higher entry cap, and a
