@@ -26,15 +26,15 @@
   <img alt="صفر اعتماديات" src="https://img.shields.io/badge/dependencies-zero-00e5ff?style=for-the-badge&labelColor=10173a">
   <img alt="بيئة التشغيل Node 18+" src="https://img.shields.io/badge/runtime-Node%20%E2%89%A5%2018-ff2fd6?style=for-the-badge&labelColor=10173a">
   <img alt="ميزانية الذاكرة 2KB" src="https://img.shields.io/badge/memory%20budget-2KB-ffd60a?style=for-the-badge&labelColor=10173a">
-  <img alt="15 أمراً" src="https://img.shields.io/badge/commands-15-a86bff?style=for-the-badge&labelColor=10173a">
+  <img alt="23 أمراً" src="https://img.shields.io/badge/commands-23-a86bff?style=for-the-badge&labelColor=10173a">
   <img alt="إضافة DeepSeek Harness" src="https://img.shields.io/badge/plugin-DeepSeek%20Harness-00ffa3?style=for-the-badge&labelColor=10173a">
 </div>
 
-> ### 🧠 `TOOLS/MEM.MJS` · **15 أمراً** · `NODE ZERO-DEP`
-> **`index · inject · list · search · show · store · forget · review · draft · map · gather · global-sync · stats · doctor · usage`**
+> ### 🧠 `TOOLS/MEM.MJS` · **23 أمراً** · `NODE ZERO-DEP`
+> **`index · inject · list · search · show · store · forget · review · draft · drafts · approve · reject · write-mode · explain · verify · feedback · map · gather · conflicts · resolve · global-sync · stats · doctor`**
 >
 > ### 🧩 `PLUGIN/DSH-MEMORY` · **إضافة DEEPSEEK HARNESS** (جديد في 0.3.0)
-> **`mem_recall` · `mem_save` · `/memory recall|save|doctor|review|map|stats|draft`**
+> **`mem_recall` · `mem_save` · `/memory recall|save|doctor|review|map|conflicts|resolve|explain|verify|feedback|stats|draft|drafts|approve|reject|write-mode`**
 
 <details>
 <summary>🎨 <b>اضغط لعرض الرسم الفني</b> ✨</summary>
@@ -65,7 +65,7 @@
 <td align="center" width="20%"><img src="./assets/icons/retrievable.svg" width="56" alt="RETRIEVABLE IDF 3-way search"><br><b>RETRIEVABLE<br>IDF 3-way search</b></td>
 <td align="center" width="20%"><img src="./assets/icons/audited.svg" width="56" alt="AUDITED evidence chain enforced"><br><b>AUDITED<br>evidence chain enforced</b></td>
 <td align="center" width="20%"><img src="./assets/icons/auto-inject.svg" width="56" alt="AUTO-INJECT ≤2KB per session"><br><b>AUTO-INJECT<br>≤2KB per session</b></td>
-<td align="center" width="20%"><img src="./assets/icons/one-command.svg" width="56" alt="ONE COMMAND 15-command CLI"><br><b>ONE COMMAND<br>15-command CLI + plugin</b></td>
+<td align="center" width="20%"><img src="./assets/icons/one-command.svg" width="56" alt="ONE COMMAND 23-command CLI"><br><b>ONE COMMAND<br>23-command CLI + plugin</b></td>
 </tr>
 </table>
 
@@ -89,7 +89,7 @@
 | الذاكرة في السياق | كتلة `mem inject` داخل `AGENTS.md` | مقطع في المطالبة في كل دورة (≤ 2 KB، مع تدهور آمن) |
 | البحث من الوكيل | تشغيل `mem.mjs search` عبر سطر الأوامر | أداة `mem_recall` (دفتر الدروس **+ نص الجلسات كاملاً**) |
 | كتابة درس | `mem.mjs store` عبر سطر الأوامر | أداة `mem_save` — **تطلب موافقة بشرية دائماً** |
-| الصيانة البشرية | أوامر `mem.mjs` | `/memory recall\|save\|doctor\|review\|map\|stats\|draft` |
+| الصيانة البشرية | أوامر `mem.mjs` | `/memory recall\|save\|doctor\|review\|map\|conflicts\|resolve\|explain\|verify\|feedback\|stats\|draft\|drafts\|approve\|reject\|write-mode` |
 
 التفاصيل الكاملة في [`CHANGELOG.md`](./CHANGELOG.md) و[`plugin/README.md`](./plugin/README.md).
 
@@ -138,7 +138,7 @@
 | 🧩 | **إضافة Harness أصلية** | الفهرس في المطالبة في كل دورة — دون الحاجة حتى إلى انضباط AGENTS.md |
 | 🔌 | **أداة `mem_recall`** | دفتر الدروس ∪ **نص الجلسات السابقة كاملاً** في استدعاء واحد |
 | ✍️ | **أداة `mem_save` + موافقة** | الكتابة تطلب موافقة إنسان أولاً دائماً — حتى من داخل الوكيل |
-| 💬 | **أمر `/memory`** | صيانة من مربع الدردشة: recall / save / doctor / review / map / stats / draft |
+| 💬 | **أمر `/memory`** | صيانة من مربع الدردشة: recall / save / doctor / review / map / conflicts / resolve / explain / verify / feedback / stats / draft / drafts / approve / reject / write-mode |
 | 🎯 | بحث ثلاثي المسارات بترتيب IDF | حرفي ∪ ثنائيات/أحاديات CJK ∪ مرادفات `aliases`؛ والكلمات النادرة تفوز |
 | ✂️ | مقاطع نصية مع كل نتيجة | حاكم على الصلة دون فتح الملفات |
 | ♻️ | الأرشفة التلقائية عبر `supersedes` | الدروس تتطور؛ والإصدارات القديمة تتقاعد تلقائياً إلى `archive/` |
@@ -302,7 +302,7 @@ Verification：Re-test returns 1898 → 1898 byte-identical (see `tools/mem.mjs`
 | `gather <q>` | حزمة اجتماع: قيود ذات صلة ≤8 KB |
 | `global-sync` | عكس قيود `scope: global` عبر مساحات العمل |
 | `stats [days]` | قياس الاسترجاع (معدل الإصابة) |
-| `doctor` | فحص صحة كامل — الخروج بـ 0 وملاحظات صفرية يعني حالة سليمة |
+| `doctor` | فحص صحة كامل — **الخروج بـ 0 وبدون ملاحظات حرجة (findings) يعني حالة سليمة** (الملاحظات المعلوماتية لا تؤثر) |
 
 ### إضافة Harness
 
@@ -313,7 +313,7 @@ Verification：Re-test returns 1898 → 1898 byte-identical (see `tools/mem.mjs`
 | `mem_save <content>` | كتابة درس واحد — **تطلب الموافقة أولاً دائماً** |
 | `/memory recall <q>` | نفس البحث، يكتبه إنسان |
 | `/memory save <file.md>` | حفظ قيد (كتابة الأمر هي الموافقة) |
-| `/memory doctor \| review \| map \| stats \| draft` | نفس وجه الصيانة كما في CLI |
+| `/memory doctor \| review \| map \| conflicts \| resolve \| explain \| verify \| feedback \| stats \| draft \| drafts \| approve \| reject \| write-mode` | نفس وجه الصيانة كما في CLI |
 
 </div>
 
@@ -329,7 +329,7 @@ Verification：Re-test returns 1898 → 1898 byte-identical (see `tools/mem.mjs`
                     │  *.md lessons · MEMORY.md index · stats   │
                     └────────────────────┬──────────────────────┘
                                          │
-                              tools/mem.mjs  (engine, 15 commands)
+                              tools/mem.mjs  (engine, 23 commands)
                                          │
                               tools/mem-core.mjs  (facade)
                           promptIndexText · formatRecall · saveAndSync
@@ -356,7 +356,7 @@ cross-session-memory/
 ├── README.md · README.zh-CN.md · README.zh-TW.md · README.ar.md · README.vi.md
 ├── LICENSE · CHANGELOG.md · .gitignore
 ├── tools/
-│   ├── mem.mjs            # the 15-command engine (single file, zero deps)
+│   ├── mem.mjs            # the 23-command engine (single file, zero deps)
 │   └── mem-core.mjs       # shared facade — the single entry for plugin & CLI
 ├── plugin/dsh-memory/     # DeepSeek Harness bundle (Plugin Edition)
 │   ├── index.js           #   prompt injection · mem_recall · mem_save · /memory

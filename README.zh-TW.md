@@ -26,15 +26,15 @@
   <img alt="零依赖" src="https://img.shields.io/badge/dependencies-zero-00e5ff?style=for-the-badge&labelColor=10173a">
   <img alt="运行时 Node 18+" src="https://img.shields.io/badge/runtime-Node%20%E2%89%A5%2018-ff2fd6?style=for-the-badge&labelColor=10173a">
   <img alt="记忆预算 2KB" src="https://img.shields.io/badge/memory%20budget-2KB-ffd60a?style=for-the-badge&labelColor=10173a">
-  <img alt="15 条命令" src="https://img.shields.io/badge/commands-15-a86bff?style=for-the-badge&labelColor=10173a">
+  <img alt="23 條指令" src="https://img.shields.io/badge/commands-23-a86bff?style=for-the-badge&labelColor=10173a">
   <img alt="DeepSeek Harness 插件" src="https://img.shields.io/badge/plugin-DeepSeek%20Harness-00ffa3?style=for-the-badge&labelColor=10173a">
 </div>
 
-> ### 🧠 `TOOLS/MEM.MJS` · **15 條指令** · `NODE ZERO-DEP`
-> **`index · inject · list · search · show · store · forget · review · draft · map · gather · global-sync · stats · doctor · usage`**
+> ### 🧠 `TOOLS/MEM.MJS` · **23 條指令** · `NODE ZERO-DEP`
+> **`index · inject · list · search · show · store · forget · review · draft · drafts · approve · reject · write-mode · explain · verify · feedback · map · gather · conflicts · resolve · global-sync · stats · doctor`**
 >
 > ### 🧩 `PLUGIN/DSH-MEMORY` · **DeepSeek Harness 外掛**（0.3.0 新增）
-> **`mem_recall` · `mem_save` · `/memory recall|save|doctor|review|map|stats|draft`**
+> **`mem_recall` · `mem_save` · `/memory recall|save|doctor|review|map|conflicts|resolve|explain|verify|feedback|stats|draft|drafts|approve|reject|write-mode`**
 
 <details>
 <summary>🎨 <b>點一下，看 ASCII 藝術字</b> ✨</summary>
@@ -65,7 +65,7 @@
 <td align="center" width="20%"><img src="./assets/icons/retrievable.svg" width="56" alt="一搜即得 IDF 三路检索"><br><b>一搜即得<br>IDF 三路檢索</b></td>
 <td align="center" width="20%"><img src="./assets/icons/audited.svg" width="56" alt="证据链强制 有据可查"><br><b>證據鏈強制<br>有據可查</b></td>
 <td align="center" width="20%"><img src="./assets/icons/auto-inject.svg" width="56" alt="自动注入 每会话 ≤2KB"><br><b>自動注入<br>每次會話 ≤2KB</b></td>
-<td align="center" width="20%"><img src="./assets/icons/one-command.svg" width="56" alt="一条命令 15 条命令 + 插件"><br><b>一條指令<br>15 條指令 + 外掛</b></td>
+<td align="center" width="20%"><img src="./assets/icons/one-command.svg" width="56" alt="一条命令 23 条命令 + 插件"><br><b>一條指令<br>23 條指令 + 外掛</b></td>
 </tr>
 </table>
 
@@ -82,7 +82,7 @@
 | 記憶進上下文 | `mem inject` 注入 `AGENTS.md` | 每回合注入提示詞（≤2KB，失敗降級） |
 | 代理來搜 | 經 shell 跑 `mem.mjs search` | `mem_recall` 工具（教訓本 **+ 會話全文**） |
 | 寫入教訓 | 經 shell 跑 `mem.mjs store` | `mem_save` 工具——**每次都先經人工審批** |
-| 人工維護 | `mem.mjs` 指令 | `/memory recall\|save\|doctor\|review\|map\|stats\|draft` |
+| 人工維護 | `mem.mjs` 指令 | `/memory recall\|save\|doctor\|review\|map\|conflicts\|resolve\|explain\|verify\|feedback\|stats\|draft\|drafts\|approve\|reject\|write-mode` |
 
 完整細節見 [`CHANGELOG.md`](./CHANGELOG.md) 與 [`plugin/README.md`](./plugin/README.md)。
 
@@ -119,7 +119,7 @@ Agent Lesson Book 走的是相反的路：
 | 🧩 | **Harness 原生外掛** | 每回合提示詞裡都有索引——連 AGENTS.md 自律都不用靠 |
 | 🔌 | **`mem_recall` 工具** | 教訓本 ∪ **既往會話全文**，一調即得 |
 | ✍️ | **`mem_save` 工具 + 審批** | 即使代理想寫，也永遠先問人 |
-| 💬 | **`/memory` 指令** | 聊天框裡維護：recall / save / doctor / review / map / stats / draft |
+| 💬 | **`/memory` 指令** | 聊天框裡維護：recall / save / doctor / review / map / conflicts / resolve / explain / verify / feedback / stats / draft / drafts / approve / reject / write-mode |
 | 🎯 | IDF 加權三路檢索 | 字面 ∪ 中文 bigram/unigram ∪ `aliases` 同義；稀有詞勝出 |
 | ✂️ | 命中附帶片段 | 不開檔案就能判斷相關性 |
 | ♻️ | `supersedes` 自動歸檔 | 教訓會進化；舊版自動退入 `archive/` |
@@ -264,7 +264,7 @@ review: 2026-12-21
 | `gather <q>` | 合議包：相關條目 ≤8KB |
 | `global-sync` | 跨工作區鏡射 `scope: global` 條目 |
 | `stats [days]` | 檢索埋點（命中率） |
-| `doctor` | 全量體檢——exit 0 且零提示即綠 |
+| `doctor` | 全量體檢——exit 0 且零 findings 即綠（notes 僅資訊級） |
 
 ### Harness 外掛
 
@@ -275,7 +275,7 @@ review: 2026-12-21
 | `mem_save <content>` | 寫入一條教訓——**每次都先經審批** |
 | `/memory recall <q>` | 同款檢索，人親手敲 |
 | `/memory save <file.md>` | 入庫一條條目（親手敲即批准） |
-| `/memory doctor \| review \| map \| stats \| draft` | 與 CLI 同款維護介面 |
+| `/memory doctor \| review \| map \| conflicts \| resolve \| explain \| verify \| feedback \| stats \| draft \| drafts \| approve \| reject \| write-mode` | 與 CLI 同款維護介面 |
 
 ---
 
@@ -287,7 +287,7 @@ review: 2026-12-21
                     │  *.md 条目 · MEMORY.md 索引 · 埋点        │
                     └────────────────────┬──────────────────────┘
                                          │
-                              tools/mem.mjs  （引擎，15 条命令）
+                              tools/mem.mjs  （引擎，23 条命令）
                                          │
                               tools/mem-core.mjs  （门面）
                           promptIndexText · formatRecall · saveAndSync
@@ -310,7 +310,7 @@ cross-session-memory/
 ├── README.md · README.zh-CN.md · README.zh-TW.md · README.ar.md · README.vi.md
 ├── LICENSE · CHANGELOG.md · .gitignore
 ├── tools/
-│   ├── mem.mjs            # 15 条命令的引擎（单文件，零依赖）
+│   ├── mem.mjs            # 23 條指令的引擎（單檔案，零依賴）
 │   └── mem-core.mjs       # 共享门面——插件与 CLI 的单一入口
 ├── plugin/dsh-memory/     # DeepSeek Harness 插件包（插件版）
 │   ├── index.js           #   提示词注入 · mem_recall · mem_save · /memory

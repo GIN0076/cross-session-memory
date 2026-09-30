@@ -26,15 +26,15 @@
   <img alt="dependencies zero" src="https://img.shields.io/badge/dependencies-zero-00e5ff?style=for-the-badge&labelColor=10173a">
   <img alt="runtime Node 18+" src="https://img.shields.io/badge/runtime-Node%20%E2%89%A5%2018-ff2fd6?style=for-the-badge&labelColor=10173a">
   <img alt="memory budget 2KB" src="https://img.shields.io/badge/memory%20budget-2KB-ffd60a?style=for-the-badge&labelColor=10173a">
-  <img alt="commands 15" src="https://img.shields.io/badge/commands-15-a86bff?style=for-the-badge&labelColor=10173a">
+  <img alt="commands 23" src="https://img.shields.io/badge/commands-23-a86bff?style=for-the-badge&labelColor=10173a">
   <img alt="plugin DeepSeek Harness" src="https://img.shields.io/badge/plugin-DeepSeek%20Harness-00ffa3?style=for-the-badge&labelColor=10173a">
 </div>
 
-> ### 🧠 `TOOLS/MEM.MJS` · **15 LỆNH** · `NODE ZERO-DEP`
-> **`index · inject · list · search · show · store · forget · review · draft · map · gather · global-sync · stats · doctor · usage`**
+> ### 🧠 `TOOLS/MEM.MJS` · **23 LỆNH** · `NODE ZERO-DEP`
+> **`index · inject · list · search · show · store · forget · review · draft · drafts · approve · reject · write-mode · explain · verify · feedback · map · gather · conflicts · resolve · global-sync · stats · doctor`**
 >
 > ### 🧩 `PLUGIN/DSH-MEMORY` · **PLUGIN DEEPSEEK HARNESS** (mới trong 0.3.0)
-> **`mem_recall` · `mem_save` · `/memory recall|save|doctor|review|map|stats|draft`**
+> **`mem_recall` · `mem_save` · `/memory recall|save|doctor|review|map|conflicts|resolve|explain|verify|feedback|stats|draft|drafts|approve|reject|write-mode`**
 
 <details>
 <summary>🎨 <b>Nhấn để xem tranh ASCII</b> ✨</summary>
@@ -65,7 +65,7 @@
 <td align="center" width="20%"><img src="./assets/icons/retrievable.svg" width="56" alt="RETRIEVABLE IDF 3-way search"><br><b>DỄ TRUY XUẤT<br>tìm kiếm IDF 3 hướng</b></td>
 <td align="center" width="20%"><img src="./assets/icons/audited.svg" width="56" alt="AUDITED evidence chain enforced"><br><b>ĐƯỢC KIỂM CHỨNG<br>chuỗi bằng chứng bắt buộc</b></td>
 <td align="center" width="20%"><img src="./assets/icons/auto-inject.svg" width="56" alt="AUTO-INJECT ≤2KB per session"><br><b>TỰ ĐỘNG TIÊM<br>≤2KB mỗi phiên</b></td>
-<td align="center" width="20%"><img src="./assets/icons/one-command.svg" width="56" alt="ONE COMMAND 15-command CLI + plugin"><br><b>MỘT LỆNH<br>CLI 15 lệnh + plugin</b></td>
+<td align="center" width="20%"><img src="./assets/icons/one-command.svg" width="56" alt="ONE COMMAND 23-command CLI + plugin"><br><b>MỘT LỆNH<br>CLI 23 lệnh + plugin</b></td>
 </tr>
 </table>
 
@@ -83,7 +83,7 @@ vẫn động cơ không phụ thuộc ấy, nhưng có hai gương mặt phân 
 | Bộ nhớ trong ngữ cảnh | khối `mem inject` trong `AGENTS.md` | một mục prompt mỗi lượt (≤ 2 KB, fail-degrade) |
 | Agent tự tìm kiếm | chạy `mem.mjs search` qua shell | công cụ `mem_recall` (sổ bài học **+ toàn văn các phiên**) |
 | Ghi một bài học | `mem.mjs store` qua shell | công cụ `mem_save` — **luôn hỏi người phê duyệt** |
-| Con người bảo trì | các lệnh `mem.mjs` | `/memory recall\|save\|doctor\|review\|map\|stats\|draft` |
+| Con người bảo trì | các lệnh `mem.mjs` | `/memory recall\|save\|doctor\|review\|map\|conflicts\|resolve\|explain\|verify\|feedback\|stats\|draft\|drafts\|approve\|reject\|write-mode` |
 
 Chi tiết đầy đủ trong [`CHANGELOG.md`](./CHANGELOG.md) và [`plugin/README.md`](./plugin/README.md).
 
@@ -124,7 +124,7 @@ Agent Lesson Book đặt cược theo hướng hoàn toàn ngược lại:
 | 🧩 | **Plugin Harness gốc** | Chỉ mục nằm trong prompt mỗi lượt — không còn phải trông cậy vào kỷ luật AGENTS.md nữa |
 | 🔌 | **Công cụ `mem_recall`** | Sổ bài học ∪ **toàn văn các phiên trước** trong một lời gọi |
 | ✍️ | **Công cụ `mem_save` + phê duyệt** | Mọi lần ghi luôn hỏi người trước — kể cả khi gọi từ trong agent |
-| 💬 | **Lệnh `/memory`** | Bảo trì ngay từ hộp thoại: recall / save / doctor / review / map / stats / draft |
+| 💬 | **Lệnh `/memory`** | Bảo trì ngay từ hộp thoại: recall / save / doctor / review / map / conflicts / resolve / explain / verify / feedback / stats / draft / drafts / approve / reject / write-mode |
 | 🎯 | Tìm kiếm IDF 3 hướng | Nghĩa đen ∪ bigram/unigram CJK ∪ từ đồng nghĩa `aliases`; thuật ngữ hiếm được ưu tiên |
 | ✂️ | Đoạn trích ở mỗi kết quả | Đánh giá độ liên quan khỏi cần mở tệp |
 | ♻️ | Tự động lưu trữ theo `supersedes` | Bài học tiến hóa; bản cũ tự động được đưa về `archive/` |
@@ -272,7 +272,7 @@ Verification：Re-test returns 1898 → 1898 byte-identical (see `tools/mem.mjs`
 | `gather <q>` | gói họp: các bản ghi liên quan ≤8 KB |
 | `global-sync` | nhân bản các bản ghi `scope: global` xuyên không gian làm việc |
 | `stats [days]` | telemetry truy xuất (tỷ lệ tìm trúng) |
-| `doctor` | kiểm tra sức khỏe toàn phần — exit 0 & không có ghi chú nghĩa là xanh |
+| `doctor` | kiểm tra sức khỏe toàn phần — **exit 0 = không có findings là xanh** (notes chỉ mang tính thông tin) |
 
 ### Plugin Harness
 
@@ -283,7 +283,7 @@ Verification：Re-test returns 1898 → 1898 byte-identical (see `tools/mem.mjs`
 | `mem_save <content>` | ghi một bài học — **luôn hỏi phê duyệt trước** |
 | `/memory recall <q>` | cùng phép tìm đó, do người gõ |
 | `/memory save <file.md>` | lưu một bản ghi (gõ lệnh chính là sự phê duyệt) |
-| `/memory doctor \| review \| map \| stats \| draft` | cùng gương mặt bảo trì như CLI |
+| `/memory doctor \| review \| map \| conflicts \| resolve \| explain \| verify \| feedback \| stats \| draft \| drafts \| approve \| reject \| write-mode` | cùng gương mặt bảo trì như CLI |
 
 ---
 
@@ -295,7 +295,7 @@ Verification：Re-test returns 1898 → 1898 byte-identical (see `tools/mem.mjs`
                     │  *.md lessons · MEMORY.md index · stats   │
                     └────────────────────┬──────────────────────┘
                                          │
-                              tools/mem.mjs  (engine, 15 commands)
+                              tools/mem.mjs  (engine, 23 commands)
                                          │
                               tools/mem-core.mjs  (facade)
                           promptIndexText · formatRecall · saveAndSync
@@ -318,7 +318,7 @@ cross-session-memory/
 ├── README.md · README.zh-CN.md · README.zh-TW.md · README.ar.md · README.vi.md
 ├── LICENSE · CHANGELOG.md · .gitignore
 ├── tools/
-│   ├── mem.mjs            # the 15-command engine (single file, zero deps)
+│   ├── mem.mjs            # the 23-command engine (single file, zero deps)
 │   └── mem-core.mjs       # shared facade — the single entry for plugin & CLI
 ├── plugin/dsh-memory/     # DeepSeek Harness bundle (Plugin Edition)
 │   ├── index.js           #   prompt injection · mem_recall · mem_save · /memory

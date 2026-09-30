@@ -34,7 +34,7 @@ node tools/mem.mjs global-sync
 # ④ search something you know is in the book
 node tools/mem.mjs search restore
 
-# ⑤ health check must be exit 0 AND zero notes
+# ⑤ health check must be exit 0 AND zero findings (notes are informational)
 node tools/mem.mjs doctor
 ```
 

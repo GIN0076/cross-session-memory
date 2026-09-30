@@ -26,15 +26,15 @@
   <img alt="dependencies zero" src="https://img.shields.io/badge/dependencies-zero-00e5ff?style=for-the-badge&labelColor=10173a">
   <img alt="runtime Node 18+" src="https://img.shields.io/badge/runtime-Node%20%E2%89%A5%2018-ff2fd6?style=for-the-badge&labelColor=10173a">
   <img alt="memory budget 2KB" src="https://img.shields.io/badge/memory%20budget-2KB-ffd60a?style=for-the-badge&labelColor=10173a">
-  <img alt="commands 15" src="https://img.shields.io/badge/commands-15-a86bff?style=for-the-badge&labelColor=10173a">
+  <img alt="commands 23" src="https://img.shields.io/badge/commands-23-a86bff?style=for-the-badge&labelColor=10173a">
   <img alt="plugin DeepSeek Harness" src="https://img.shields.io/badge/plugin-DeepSeek%20Harness-00ffa3?style=for-the-badge&labelColor=10173a">
 </div>
 
-> ### 🧠 `TOOLS/MEM.MJS` · **15 COMMANDS** · `NODE ZERO-DEP`
-> **`index · inject · list · search · show · store · forget · review · draft · map · gather · global-sync · stats · doctor · usage`**
+> ### 🧠 `TOOLS/MEM.MJS` · **23 COMMANDS** · `NODE ZERO-DEP`
+> **`index · inject · list · search · show · store · forget · review · draft · drafts · approve · reject · write-mode · explain · verify · feedback · map · gather · conflicts · resolve · global-sync · stats · doctor`**
 >
 > ### 🧩 `PLUGIN/DSH-MEMORY` · **DEEPSEEK HARNESS PLUGIN** (new in 0.3.0)
-> **`mem_recall` · `mem_save` · `/memory recall|save|doctor|review|map|stats|draft`**
+> **`mem_recall` · `mem_save` · `/memory recall|save|doctor|review|map|conflicts|resolve|explain|verify|feedback|stats|draft|drafts|approve|reject|write-mode`**
 
 <details>
 <summary>🎨 <b>Click to see the ASCII art</b> ✨</summary>
@@ -65,7 +65,7 @@
 <td align="center" width="20%"><img src="./assets/icons/retrievable.svg" width="56" alt="RETRIEVABLE IDF 3-way search"><br><b>RETRIEVABLE<br>IDF 3-way search</b></td>
 <td align="center" width="20%"><img src="./assets/icons/audited.svg" width="56" alt="AUDITED evidence chain enforced"><br><b>AUDITED<br>evidence chain enforced</b></td>
 <td align="center" width="20%"><img src="./assets/icons/auto-inject.svg" width="56" alt="AUTO-INJECT ≤2KB per session"><br><b>AUTO-INJECT<br>≤2KB per session</b></td>
-<td align="center" width="20%"><img src="./assets/icons/one-command.svg" width="56" alt="ONE COMMAND 15-command CLI"><br><b>ONE COMMAND<br>15-command CLI + plugin</b></td>
+<td align="center" width="20%"><img src="./assets/icons/one-command.svg" width="56" alt="ONE COMMAND 23-command CLI"><br><b>ONE COMMAND<br>23-command CLI + plugin</b></td>
 </tr>
 </table>
 
@@ -83,7 +83,7 @@ same zero-dependency engine, two delivery faces:
 | Memory in context | `mem inject` block in `AGENTS.md` | prompt section every turn (≤ 2 KB, fail-degrade) |
 | Search from the agent | run `mem.mjs search` via shell | `mem_recall` tool (lesson book **+ session full-text**) |
 | Write a lesson | `mem.mjs store` via shell | `mem_save` tool — **always asks for human approval** |
-| Human maintenance | `mem.mjs` commands | `/memory recall\|save\|doctor\|review\|map\|stats\|draft` |
+| Human maintenance | `mem.mjs` commands | `/memory recall\|save\|doctor\|review\|map\|conflicts\|resolve\|explain\|verify\|feedback\|stats\|draft\|drafts\|approve\|reject\|write-mode` |
 
 Full details in [`CHANGELOG.md`](./CHANGELOG.md) and [`plugin/README.md`](./plugin/README.md).
 
@@ -126,7 +126,7 @@ Agent Lesson Book takes the opposite bet:
 | 🧩 | **Native Harness plugin** | Index in the prompt every turn — not even AGENTS.md discipline needed |
 | 🔌 | **`mem_recall` tool** | Lesson book ∪ **past-session full-text** in one call |
 | ✍️ | **`mem_save` tool + approval** | Writes always ask a human first — even from inside the agent |
-| 💬 | **`/memory` command** | Maintenance from the chat box: recall / save / doctor / review / map / stats / draft |
+| 💬 | **`/memory` command** | Maintenance from the chat box: recall / save / doctor / review / map / conflicts / resolve / explain / verify / feedback / stats / draft / drafts / approve / reject / write-mode |
 | 🎯 | IDF-ranked 3-way search | Literal ∪ CJK bigram/unigram ∪ `aliases` synonyms; rare terms win |
 | ✂️ | Snippets on hits | Judge relevance without opening files |
 | ♻️ | `supersedes` auto-archive | Lessons evolve; old versions retire to `archive/` automatically |
@@ -264,17 +264,26 @@ Verification：Re-test returns 1898 → 1898 byte-identical (see `tools/mem.mjs`
 | `index` | print / regenerate the budgeted index |
 | `inject` | sync the injection block into `AGENTS.md` (auto on writes) |
 | `list` | list all entries with health flags |
-| `search <q> [n]` | IDF 3-way search with snippets |
+| `search <q> [n] [--two-stage]` | IDF 3-way search with snippets; `--two-stage` reranks by confidence / freshness / feedback |
 | `show <name>` | print one full entry |
-| `store <file\|-> [--overwrite] [--force]` | validate & store (secrets/dupes/evidence gated) |
+| `store <file\|-> [--overwrite] [--force] [--model]` | validate & store (secrets/dupes/evidence gated) |
 | `forget <name>` | archive, never hard-delete |
 | `review <name>` | refresh verification date, push review +90 days |
-| `draft [topic]` | generate a four-section skeleton |
-| `map [name]` | text knowledge graph (supersedes / related / review) |
-| `gather <q>` | meeting pack: related entries ≤8 KB |
+| `draft [topic]` | generate a four-section skeleton (lands in `drafts/`) |
+| `drafts` | list pending drafts |
+| `approve <draft>` | approve a draft into the book (full store gate) |
+| `reject <draft> [reason]` | reject a draft — archived, never hard-deleted |
+| `write-mode [approval\|auto-draft\|auto-low-risk\|off]` | read / set the write mode (models are gated, humans never are) |
+| `explain <name>` | why an entry is trusted — confidence, state, evidence, relations |
+| `verify [name\|--all]` | run verification recipes (whitelist only, never arbitrary shell) |
+| `feedback <q> <adopted,csv> [reason]` | record what a recall was used for; later recalls boost adopted entries |
+| `map [name]` | text knowledge graph — six sections: supersede chains · causal chains · conflict pairs · expired nodes · review timeline · common-root grouping |
+| `gather <q> [budget]` | evidence pack, confidence-tiered — **never writes a conclusion** |
+| `conflicts` | list unresolved `conflictsWith` pairs |
+| `resolve <loser> --prefer <winner> --reason <text>` | adjudicate a conflict — loser derives to `stale`, both entries kept |
 | `global-sync` | mirror `scope: global` entries cross-workspace |
-| `stats [days]` | retrieval telemetry (hit-rate) |
-| `doctor` | full health check — exit 0 & zero notes is green |
+| `stats [days]` | retrieval telemetry (hit-rate); non-integer falls back to 7 |
+| `doctor` | full health check — **green = exit 0 = zero findings** (notes are informational) |
 
 ### Harness plugin
 
@@ -285,7 +294,7 @@ Verification：Re-test returns 1898 → 1898 byte-identical (see `tools/mem.mjs`
 | `mem_save <content>` | write one lesson — **always asks for approval first** |
 | `/memory recall <q>` | same search, typed by a human |
 | `/memory save <file.md>` | store an entry (typing it is the approval) |
-| `/memory doctor \| review \| map \| stats \| draft` | same maintenance face as the CLI |
+| `/memory doctor \| review \| map \| conflicts \| resolve \| explain \| verify \| feedback \| stats \| draft \| drafts \| approve \| reject \| write-mode` | same maintenance face as the CLI |
 
 ---
 
@@ -297,7 +306,7 @@ Verification：Re-test returns 1898 → 1898 byte-identical (see `tools/mem.mjs`
                     │  *.md lessons · MEMORY.md index · stats   │
                     └────────────────────┬──────────────────────┘
                                          │
-                              tools/mem.mjs  (engine, 15 commands)
+                              tools/mem.mjs  (engine, 23 commands)
                                          │
                               tools/mem-core.mjs  (facade)
                           promptIndexText · formatRecall · saveAndSync
@@ -320,7 +329,7 @@ cross-session-memory/
 ├── README.md · README.zh-CN.md · README.zh-TW.md · README.ar.md · README.vi.md
 ├── LICENSE · CHANGELOG.md · .gitignore
 ├── tools/
-│   ├── mem.mjs            # the 15-command engine (single file, zero deps)
+│   ├── mem.mjs            # the 23-command engine (single file, zero deps)
 │   └── mem-core.mjs       # shared facade — the single entry for plugin & CLI
 ├── plugin/dsh-memory/     # DeepSeek Harness bundle (Plugin Edition)
 │   ├── index.js           #   prompt injection · mem_recall · mem_save · /memory

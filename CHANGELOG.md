@@ -1,5 +1,50 @@
 # Changelog
 
+## Plugin 1.1.0 / Bundle 0.4.0 — 2026-09-30 — read-only settings card, 16 subcommands, phase-8 hardening
+
+The biggest release since 0.3.0. The plugin gains a **client half** for the first
+time (a read-only Settings card), the `/memory` command surface is completed, and the
+engine picks up performance/privacy hardening. The bundle entry is now a **single
+entry** (`exports["."]` and the patch row both point at `./index.js`).
+
+### Added
+- **Read-only Settings card (phase 7.3)** — `plugin/dsh-memory/client.js` registers a
+  `settings.section` entry (`id: memory`) showing index budget, entry count, write
+  mode, confidence mix, draft/conflict counts, 7-day recall hit rate, recent entries
+  and an entry search. Data comes from a **same-origin, read-only** `POST /dsh-memory-rpc`
+  (`status` / `search` only — never a write path) registered by the host half with a
+  connection-auth + loopback + same-origin triple fence. Theme tokens only
+  (`--dsw-alias-*`), no iframe, no cross-plugin DOM. On failure the card degrades to a
+  pointer back to `/memory` — the chat command stays fully functional.
+- **`/memory` completed to 16 subcommands** — `conflicts`, `resolve <loser> --prefer
+  <winner> --reason <text>` (phase 6 adjudication), `explain`, `verify`, `feedback`
+  (phase 7.2), plus the existing recall/save/doctor/review/map/stats/draft/drafts/
+  approve/reject/write-mode. The command honors `inv.signal` (cancel) and resolves
+  paths from the session workspace. A single `MEMORY_USAGE` constant feeds description,
+  hint and default output.
+- **Five-language READMEs + docs aligned (phase 7.4)** — command badges `15 → 23`, the
+  CLI table expanded to all 23 commands, `/memory` lists all 16 subcommands, and the
+  doctor green criterion corrected to `zero findings` (`notes` are informational) across
+  `README.*` (en/zh-CN/zh-TW/ar/vi), `docs/RESTORE.md` and both plugin READMEs.
+
+### Changed
+- **Single plugin entry (risk R1)** — the previous dual entry (`index2.js` active /
+  `index.js` stale) is merged: `index.js` now carries the full 16-subcommand surface,
+  the `CORE_CANDIDATES` engine fallback and the 7.3 route; `index2.js` is removed.
+- **Engine (phase 8)** — `promptIndexText` caches the injected index behind a lightweight
+  mtime/size fingerprint (no content re-read when nothing changed); `shingles3Cached`
+  memoizes 3-gram shingles so near-duplicate checks stop recomputing them per pair.
+- **Privacy (phase 8)** — `DSH_MEMORY_TELEMETRY=off` disables `stats.jsonl` /
+  `injection-audit.jsonl` writes; a `scanPii` gate refuses entries containing an email
+  address or mainland mobile number (draft hard-gate included), with bilingual messages.
+
+### Testing
+- 67 unit tests (12 files) including a **both-entries parity** test that pins production
+  and release entries to 16 subcommands + every phase-7 capability, a docs-alignment test
+  deriving the command count from the engine (no hardcoded badge), and phase-7.3 /
+  phase-8 suites. Release smoke 21/21; `sync-release --check` all-in-sync with export
+  parity. A `GitHub Actions` workflow runs sync-check + tests + smoke + syntax.
+
 ## Plugin 1.0.1 — 2026-09-29 — DeepSeek Harness 0.2.0 compatibility
 
 The bundle was re-verified against Harness **0.2.0-rc.1** after a clean reinstall.
