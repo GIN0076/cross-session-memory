@@ -55,7 +55,10 @@ export const LIMITS = {
   indexLines: 60,
   indexBytes: 2048,
   entryBytes: 4096,
-  entries: 200,
+  // 阶段 8（用户拍板"越多越好"）：条目上限 200 → 1000。
+  // 注意与注入解耦：索引 ≤2KB/60行 不变（提示词 token 税不变），超预算条目不进索引、
+  // 靠 mem_recall 按需搜——搜索变慢由倒排索引扛（searchEntries 阶段 8）。
+  entries: 1000,
   staleDays: 90,
   descChars: 28,
   simThreshold: 0.6,      // P0-6：近重复拦截阈值（3-gram Jaccard）
@@ -178,6 +181,75 @@ const MESSAGES_EN = {
   'MEM_CARRIERS 载体不存在：{0}': 'MEM_CARRIERS carrier not found: {0}',
   'MEM_CARRIERS 载体 {0} 缺「{1}」——约定文本被改歪': 'MEM_CARRIERS carrier {0} is missing "{1}" — convention text altered',
   '近 {0} 天：搜索 {1} 次（命中 {2} / 落空 {3}）｜show {4}｜store {5}｜埋点行 {6}': 'last {0} day(s): {1} searches (hit {2} / miss {3}) | show {4} | store {5} | {6} telemetry rows',
+  // ── map（文本图谱六段，阶段 8 补英文）──
+  '# 记忆图谱': '# Memory graph',
+  '## 取代链（supersedes）': '## Supersede chain (supersedes)',
+  '→ 取代 →': ' → supersedes → ',
+  '## 因果链（causedBy / fixedBy）': '## Causal chain (causedBy / fixedBy)',
+  '→ 因 →': ' → caused by → ',
+  '→ 由…修复 →': ' → fixed by → ',
+  '## 冲突对（conflictsWith）': '## Conflict pairs (conflictsWith)',
+  '（裁决：/memory resolve {0} --prefer {1} --reason <理由>）': ' (adjudicate: /memory resolve {0} --prefer {1} --reason <why>)',
+  '## 过期节点（stale / needs-review）': '## Expired nodes (stale / needs-review)',
+  '（review {0}）': ' (review {0})',
+  '## 复核时间线（review 到期日）': '## Review timeline (due dates)',
+  '## 同一根因的表现（causedBy / fixedBy 聚合）': '## Same root cause (causedBy / fixedBy grouped)',
+  '## 条目关系一览': '## Entry relations overview',
+  '（review {0}｜{1}）': ' (review {0} | {1})',
+  '└ 取代 →': '└ supersedes →',
+  '└ 冲突 →': '└ conflicts →',
+  '└ 因 →': '└ caused by →',
+  '└ 修复 →': '└ fixed by →',
+  '└ 适用于 →': '└ applies to →',
+  '└ 关联 →': '└ related →',
+  '- （无）': '- (none)',
+  // ── gather（合议包，阶段 8 补英文）──
+  '# 合议包：{0}': '# Evidence pack: {0}',
+  '没有命中。换 2~3 组词再搜，或用 mem_save 记下新线索。': 'No hits. Retry with 2-3 word sets, or record a new lead with mem_save.',
+  '> 只提供证据，不含结论——综合回答由读它的模型完成，引用事发证据优先。': '> Evidence only, no conclusions — synthesis stays with the reading model; cite the incident evidence first.',
+  '## 建议阅读顺序（{0} 条，已按可信度分层）': '## Suggested reading order ({0}, tiered by confidence)',
+  '## 共同根因（经 causedBy / fixedBy 聚合）': '## Common root cause (grouped by causedBy / fixedBy)',
+  '## ⚠ 冲突警告': '## ⚠ Conflict warning',
+  '—— 先 /memory resolve 裁决再引用，勿两说并用': ' — adjudicate with /memory resolve before citing; do not use both claims',
+  '## 证据条目': '## Evidence entries',
+  '可信度 {0}｜状态 {1}{2}': 'confidence {0} | state {1}{2}',
+  '｜verified 距今 {0} 天': ' | verified {0} day(s) ago',
+  '证据：{0}': 'evidence: {0}',
+  '与 {0} 冲突（未裁决）': 'conflicts with {0} (unadjudicated)',
+  '（预算 {0} B 已满，余 {1} 条未收录——单独 show 查看）': '(budget {0} B full, {1} entry/entries omitted — view individually with show)',
+  '（本包 {0}/{1} 条｜证据包而非答案：裁决冲突用 /memory resolve，全图用 mem map）': '(pack {0}/{1} entries | evidence, not an answer: adjudicate conflicts with /memory resolve, full graph via mem map)',
+  '  填好四段（验证段带可定位引用）并经人工审批后：node tools/mem.mjs store <该文件>': '  fill the four sections (Verification needs a locatable reference), get human approval, then: node tools/mem.mjs store <that file>',
+  // ── CLI 状态输出（阶段 8 补英文）──
+  '     文件 {0}｜type={1} scope={2}': '     file {0} | type={1} scope={2}',
+  '     片段': '     snippet',
+  '  （两阶段召回：IDF 候选 → 可信度/新鲜度/反馈重排）': '  (two-stage recall: IDF candidates → rerank by confidence / freshness / feedback)',
+  '[已记录反馈] query={0} 采用 {1} 条': '[feedback recorded] query={0}, {1} adopted',
+  '找不到条目：{0}': 'Entry not found: {0}',
+  '[拒绝写入] {0}': '[write refused] {0}',
+  '[已存草稿] {0} —— {1}': '[draft saved] {0} — {1}',
+  '  批准：node tools/mem.mjs approve {0}': '  approve: node tools/mem.mjs approve {0}',
+  '[已写入] {0}（来源 {1}）': '[stored] {0} (source {1})',
+  '[索引] {0} 条，{1} 字节': '[index] {0} entries, {1} bytes',
+  '[取代] {0} 已归档': '[superseded] {0} archived',
+  '当前写入模式：{0}（可选 {1}）': 'Current write mode: {0} (options: {1})',
+  '[失败] {0}': '[failed] {0}',
+  '[已设置] 写入模式 = {0}': '[set] write mode = {0}',
+  '（暂无待审批草稿）': '(no pending drafts)',
+  ' ⚠ {0} 处待补': ' ⚠ {0} to fill',
+  '共 {0} 个草稿；批准：approve <file>｜拒绝：reject <file> [原因]': '{0} draft(s); approve with: approve <file> | reject with: reject <file> [reason]',
+  '[已批准] {0} → {1}（索引 {2} 条 / {3} 字节）': '[approved] {0} → {1} (index {2} entries / {3} bytes)',
+  '[已拒绝] 草稿归档至 {0}': '[rejected] draft archived to {0}',
+  '[已归档] {0}': '[archived] {0}',
+  '[注入失败·已降级]': '[inject failed · degraded]',
+  '[已注入 AGENTS.md] {0} 字节（≤{1} 硬顶）｜列出 {2} 条，砍 {3} 条': '[injected into AGENTS.md] {0} bytes (cap {1}) | listed {2}, dropped {3}',
+  '[全局库同步] {0} ← {1} 条 scope:global{2}': '[global sync] {0} ← {1} scope:global entries{2}',
+  '，清理旧副本 {0} 个': ', cleaned {0} old copy/copies',
+  '[草稿] {0}': '[draft] {0}',
+  '[已复核] {0} → verified={1} review={2}': '[reviewed] {0} → verified={1} review={2}',
+  '[裁决失败] {0}': '[adjudication failed] {0}',
+  '[已裁决] {0} → 由「{1}」胜出（{2}）': '[adjudicated] {0} → "{1}" wins ({2})',
+  '理由：': 'Reason: ',
+  '{0} 状态 = {1}｜双方均保留在库中（未硬删）': '{0} state = {1} | both entries kept (never hard-deleted)',
 }
 
 /** 翻译 + 占位符替换；key 未收录时原样返回（长尾渐进补齐，绝不因缺译而崩）。 */
@@ -380,8 +452,30 @@ export function parseEntry(text, file = '(inline)') {
   return { file, front, meta, body: body.trim(), problems }
 }
 
+// 阶段 8（性能）：条目解析缓存（mtime 指纹）。
+// 瓶颈实测（N=1000）：每次 listEntries 全量读盘+parse 占单次搜索 ~47%（39ms）——在倒排索引之前。
+// 用「文件名+mtimeMs+size」轻量指纹（只 statSync、不读内容），指纹没变直接复用上次解析结果；
+// 条目增删改（store/forget/review）都会变 mtime → 自动重建。返回新数组防调用方改缓存数组本体。
+let LIST_CACHE = null // { key, list }
+function listFingerprint() {
+  try {
+    const root = memoryRoot()
+    const parts = [root] // 关键：把库路径编进指纹 —— 否则不同库若文件名+mtime 恰好相同会串缓存
+    for (const f of entryFiles()) {
+      try {
+        const st = statSync(join(root, f))
+        parts.push(`${f}:${st.mtimeMs}:${st.size}`)
+      } catch { return null } // 有文件读不到 → 不缓存
+    }
+    return parts.join('|')
+  } catch { return null }
+}
 export function listEntries() {
-  return entryFiles().map((f) => parseEntry(readText(join(memoryRoot(), f)), f))
+  const key = listFingerprint()
+  if (key !== null && LIST_CACHE && LIST_CACHE.key === key) return [...LIST_CACHE.list]
+  const list = entryFiles().map((f) => parseEntry(readText(join(memoryRoot(), f)), f))
+  if (key !== null) LIST_CACHE = { key, list }
+  return [...list]
 }
 
 function normHash(entry) {
@@ -552,8 +646,21 @@ export function generateKeywords(parsed, existing) {
 
 function findNearDuplicates(candidate, existing) {
   const out = []
+  // 阶段 8（性能）：先缩**候选邻域**，避免对全部条目做无条件 O(n²) 完整 Jaccard。
+  // 预筛依据（集合大小上界）：Jaccard(A,B) = |A∩B|/|A∪B| ≤ min(|A|,|B|)/max(|A|,|B|)。
+  // 若两端 shingle 集合的大小比已低于阈值，则真实 Jaccard 必然低于阈值 → 直接跳过，
+  // 不做完整交并计算。这是**严格数学上界**：跳过的一律不达标，结果与全量计算 100% 一致
+  // （不产生漏拦/误放），但省掉大小悬殊条目对的 O(|A|) 交集遍历。
+  const candSet = shingles3Cached(candidate.body)
+  const candSize = candSet.size
   for (const e of existing) {
     if (e.front.name === candidate.front.name) continue
+    const eSet = shingles3Cached(e.body)
+    const eSize = eSet.size
+    if (candSize && eSize) {
+      const ratio = (candSize < eSize ? candSize : eSize) / (candSize > eSize ? candSize : eSize)
+      if (ratio < LIMITS.simThreshold) continue // 上界 < 阈值 → Jaccard 必 < 阈值，跳过
+    }
     const sim = jaccard3(candidate.body, e.body)
     if (sim >= LIMITS.simThreshold) out.push({ file: e.file, sim })
   }
@@ -1094,25 +1201,25 @@ export function memoryMap(name = '') {
   const now = Date.now()
   const lines = []
 
-  lines.push('# 记忆图谱', '')
+  lines.push(t('# 记忆图谱'), '')
 
   // ① 取代链
-  lines.push('## 取代链（supersedes）')
+  lines.push(t('## 取代链（supersedes）'))
   const sup = edges.get('supersedes')
-  if (sup.length) for (const { from, to } of sup) lines.push(`- ${from} → 取代 → ${to}`)
-  else lines.push('- （无）')
+  if (sup.length) for (const { from, to } of sup) lines.push(`- ${from} ${t('→ 取代 →')} ${to}`)
+  else lines.push(t('- （无）'))
 
   // ② 因果链（causedBy / fixedBy）
-  lines.push('', '## 因果链（causedBy / fixedBy）')
+  lines.push('', t('## 因果链（causedBy / fixedBy）'))
   const caused = edges.get('causedBy')
   const fixed = edges.get('fixedBy')
   if (caused.length || fixed.length) {
-    for (const { from, to } of caused) lines.push(`- ${from} → 因 → ${to}`)
-    for (const { from, to } of fixed) lines.push(`- ${from} → 由…修复 → ${to}`)
-  } else lines.push('- （无）')
+    for (const { from, to } of caused) lines.push(`- ${from} ${t('→ 因 →')} ${to}`)
+    for (const { from, to } of fixed) lines.push(`- ${from} ${t('→ 由…修复 →')} ${to}`)
+  } else lines.push(t('- （无）'))
 
   // ③ 冲突对（去重：a↔b 与 b↔a 算同一对）
-  lines.push('', '## 冲突对（conflictsWith）')
+  lines.push('', t('## 冲突对（conflictsWith）'))
   const seenPairs = new Set()
   const pairs = []
   for (const { from, to } of edges.get('conflictsWith')) {
@@ -1122,18 +1229,18 @@ export function memoryMap(name = '') {
     pairs.push({ from, to })
   }
   if (pairs.length) {
-    for (const { from, to } of pairs) lines.push(`- ${from} ↔ ${to}（裁决：/memory resolve ${from} --prefer ${to} --reason <理由>）`)
-  } else lines.push('- （无）')
+    for (const { from, to } of pairs) lines.push(`- ${from} ↔ ${to}${t('（裁决：/memory resolve {0} --prefer {1} --reason <理由>）', from, to)}`)
+  } else lines.push(t('- （无）'))
 
   // ④ 过期节点（stale / needs-review）
-  lines.push('', '## 过期节点（stale / needs-review）')
+  lines.push('', t('## 过期节点（stale / needs-review）'))
   const expired = targets.filter((e) => ['stale', 'needs-review'].includes(states.get(e.front.name)))
   if (expired.length) {
-    for (const e of expired) lines.push(`- ${e.front.name} [${states.get(e.front.name)}]（review ${e.front.review ?? e.meta.review ?? '—'}）`)
-  } else lines.push('- （无）')
+    for (const e of expired) lines.push(`- ${e.front.name} [${states.get(e.front.name)}]${t('（review {0}）', e.front.review ?? e.meta.review ?? '—')}`)
+  } else lines.push(t('- （无）'))
 
   // ⑤ 复核时间线（review 到期日，升序；已过期标 !）
-  lines.push('', '## 复核时间线（review 到期日）')
+  lines.push('', t('## 复核时间线（review 到期日）'))
   const timeline = targets
     .map((e) => ({ name: e.front.name, review: e.front.review ?? e.meta.review ?? '' }))
     .sort((a, b) => (a.review || '9999').localeCompare(b.review || '9999'))
@@ -1143,31 +1250,31 @@ export function memoryMap(name = '') {
       const overdue = due && Date.parse(review) <= now ? ' !' : ''
       lines.push(`- ${due ? review : '—'} ${n}${overdue}`)
     }
-  } else lines.push('- （无）')
+  } else lines.push(t('- （无）'))
 
   // ⑥ 同一根因的不同表现（causedBy 聚合）
-  lines.push('', '## 同一根因的表现（causedBy / fixedBy 聚合）')
+  lines.push('', t('## 同一根因的表现（causedBy / fixedBy 聚合）'))
   const groups = groupByCause(targets)
   if (groups.length) {
-    for (const g of groups) lines.push(`- ${g.target}：${g.members.join('、')}`)
-  } else lines.push('- （无）')
+    for (const g of groups) lines.push(`- ${g.target}：${g.members.join(sepList())}`)
+  } else lines.push(t('- （无）'))
 
   // ⑦ 关联与其他关系（每条目一览，缺字段的老条目安静跳过）
-  lines.push('', '## 条目关系一览')
+  lines.push('', t('## 条目关系一览'))
   for (const e of targets) {
-    lines.push(`- ${e.front.name}（review ${e.front.review ?? e.meta.review ?? '—'}｜${states.get(e.front.name)}）`)
+    lines.push(`- ${e.front.name}${t('（review {0}｜{1}）', e.front.review ?? e.meta.review ?? '—', states.get(e.front.name))}`)
     const rel = relationsOf(e, 'related')
     const applies = relationsOf(e, 'appliesTo')
     const causedBy = relationsOf(e, 'causedBy')
     const fixedBy = relationsOf(e, 'fixedBy')
     const conflict = relationsOf(e, 'conflictsWith')
     const supersedes = relationsOf(e, 'supersedes')
-    if (supersedes.length) lines.push(`    └ 取代 → ${supersedes.join('、')}`)
-    if (conflict.length) lines.push(`    └ 冲突 → ${conflict.join('、')}`)
-    if (causedBy.length) lines.push(`    └ 因 → ${causedBy.join('、')}`)
-    if (fixedBy.length) lines.push(`    └ 修复 → ${fixedBy.join('、')}`)
-    if (applies.length) lines.push(`    └ 适用于 → ${applies.join('、')}`)
-    if (rel.length) lines.push(`    └ 关联 → ${rel.join('、')}`)
+    if (supersedes.length) lines.push(`    ${t('└ 取代 →')} ${supersedes.join(sepList())}`)
+    if (conflict.length) lines.push(`    ${t('└ 冲突 →')} ${conflict.join(sepList())}`)
+    if (causedBy.length) lines.push(`    ${t('└ 因 →')} ${causedBy.join(sepList())}`)
+    if (fixedBy.length) lines.push(`    ${t('└ 修复 →')} ${fixedBy.join(sepList())}`)
+    if (applies.length) lines.push(`    ${t('└ 适用于 →')} ${applies.join(sepList())}`)
+    if (rel.length) lines.push(`    ${t('└ 关联 →')} ${rel.join(sepList())}`)
   }
 
   return lines.join('\n')
@@ -1343,7 +1450,7 @@ export function gatherPack(query, budget = 8192) {
       }
     }
   }
-  if (!picked.length) return `# 合议包：${query}\n\n没有命中。换 2~3 组词再搜，或用 mem_save 记下新线索。\n`
+  if (!picked.length) return `${t('# 合议包：{0}', query)}\n\n${t('没有命中。换 2~3 组词再搜，或用 mem_save 记下新线索。')}\n`
 
   // ① 按可信度分层（verified 置顶；stale/disputed 沉底），同层内保持检索顺序
   const scored = picked.map((entry) => ({ entry, conf: deriveConfidence(entry) }))
@@ -1363,11 +1470,11 @@ export function gatherPack(query, budget = 8192) {
   const causeGroups = groupByCause(ordered)
 
   const head = [
-    `# 合议包：${query}`,
+    t('# 合议包：{0}', query),
     '',
-    '> 只提供证据，不含结论——综合回答由读它的模型完成，引用事发证据优先。',
+    t('> 只提供证据，不含结论——综合回答由读它的模型完成，引用事发证据优先。'),
     '',
-    `## 建议阅读顺序（${ordered.length} 条，已按可信度分层）`,
+    t('## 建议阅读顺序（{0} 条，已按可信度分层）', ordered.length),
   ]
   ordered.forEach((e, i) => {
     const c = deriveConfidence(e)
@@ -1375,18 +1482,18 @@ export function gatherPack(query, budget = 8192) {
     head.push(`${i + 1}. ${e.front.name}${flag} — ${e.front.description ?? ''}`)
   })
   if (causeGroups.length) {
-    head.push('', '## 共同根因（经 causedBy / fixedBy 聚合）')
-    for (const g of causeGroups) head.push(`- ${g.target}：${g.members.join('、')}`)
+    head.push('', t('## 共同根因（经 causedBy / fixedBy 聚合）'))
+    for (const g of causeGroups) head.push(`- ${g.target}：${g.members.join(sepList())}`)
   }
   const anyConflict = ordered.some((e) => conflictsOf(e).length)
   if (anyConflict) {
-    head.push('', '## ⚠ 冲突警告')
+    head.push('', t('## ⚠ 冲突警告'))
     for (const e of ordered) {
       const cs = conflictsOf(e)
-      if (cs.length) head.push(`- ${e.front.name} ↔ ${cs.join('、')} —— 先 /memory resolve 裁决再引用，勿两说并用`)
+      if (cs.length) head.push(`- ${e.front.name} ↔ ${cs.join(sepList())} ${t('—— 先 /memory resolve 裁决再引用，勿两说并用')}`)
     }
   }
-  head.push('', '## 证据条目')
+  head.push('', t('## 证据条目'))
 
   const parts = [`${head.join('\n')}\n`]
   let bytes = Buffer.byteLength(parts[0], 'utf8')
@@ -1398,25 +1505,25 @@ export function gatherPack(query, budget = 8192) {
     const cs = conflictsOf(e)
     const meta = [
       `[${used + 1}] ${e.front.name} — ${e.front.description ?? ''}（${e.file}）`,
-      `    可信度 ${c.confidence}｜状态 ${c.state}${c.ageDays !== null ? `｜verified 距今 ${c.ageDays} 天` : ''}`,
-      refs.length ? `    证据：${refs.join(' ')}` : '    证据：（验证段无可定位引用——可信度受限）',
+      `    ${t('可信度 {0}｜状态 {1}{2}', c.confidence, c.state, c.ageDays !== null ? t('｜verified 距今 {0} 天', c.ageDays) : '')}`,
+      refs.length ? `    ${t('证据：{0}', refs.join(' '))}` : `    ${t('证据：（验证段无可定位引用——可信度受限）')}`,
     ]
-    if (cs.length) meta.push(`    ⚠ 与 ${cs.join('、')} 冲突（未裁决）`)
+    if (cs.length) meta.push(`    ⚠ ${t('与 {0} 冲突（未裁决）', cs.join(sepList()))}`)
     const caused = relationsOf(e, 'causedBy')
-    if (caused.length) meta.push(`    因 → ${caused.join('、')}`)
+    if (caused.length) meta.push(`    ${t('因 →')} ${caused.join(sepList())}`)
     const fixed = relationsOf(e, 'fixedBy')
-    if (fixed.length) meta.push(`    由…修复 → ${fixed.join('、')}`)
+    if (fixed.length) meta.push(`    ${t('由…修复 →')} ${fixed.join(sepList())}`)
     const block = `\n---\n${meta.join('\n')}\n\n${e.body}\n`
     const b = Buffer.byteLength(block, 'utf8')
     if (bytes + b > budget) {
-      parts.push(`\n---\n（预算 ${budget} B 已满，余 ${ordered.length - used} 条未收录——单独 show 查看）`)
+      parts.push(`\n---\n${t('（预算 {0} B 已满，余 {1} 条未收录——单独 show 查看）', budget, ordered.length - used)}`)
       break
     }
     parts.push(block)
     bytes += b
     used += 1
   }
-  parts.push(`\n---\n（本包 ${used}/${ordered.length} 条｜证据包而非答案：裁决冲突用 /memory resolve，全图用 mem map）\n`)
+  parts.push(`\n---\n${t('（本包 {0}/{1} 条｜证据包而非答案：裁决冲突用 /memory resolve，全图用 mem map）', used, ordered.length)}\n`)
   return parts.join('')
 }
 
@@ -1523,12 +1630,21 @@ export function searchEntries(query, limit = 10, { rerank = false } = {}) {
     const all = `${head}\n${entry.meta.type ?? ''}\n${entry.meta.scope ?? ''}\n${body}`
     return { entry, body, head, all }
   })
+
+  // ── 阶段 8（倒排索引）：用 bigram/char 倒排表缩小候选集，缩小后再跑**原封不动**的打分逻辑。
+  // 正确性保证：候选集是"可能得分 > 0 的条目"的**超集**——不含任何查询词且不含 ≥2 个查询单字的
+  // 条目，原打分必为 0（会被丢弃），跳过它们结果不变；候选内 df/idf/includes 全部与原实现逐字一致。
+  const idx = searchIndexOf(parsed)
+  const candidateIds = candidateIdsFor(idx, { q, tokens, termSet, unigrams })
+
   // IDF 加权（P2-A①）：稀有词命中 > 泛词命中——修「启动」类泛词噪音
+  // df 经倒排表求得（含大 term 与单字），与全量 `includes` 计数完全一致。
   const df = new Map()
-  for (const t of termSet) df.set(t, parsed.filter((p) => p.all.includes(t)).length)
+  for (const t of termSet) df.set(t, countContaining(idx, t))
   const idf = (t) => Math.log(1 + N / (1 + (df.get(t) ?? 0)))
   const scored = []
-  for (const p of parsed) {
+  for (const id of candidateIds) {
+    const p = parsed[id]
     let score = 0
     if (p.all.includes(q)) score += 8 + 2 * idf(q)
     for (const t of tokens) {
@@ -1563,6 +1679,97 @@ export function searchEntries(query, limit = 10, { rerank = false } = {}) {
   }
   if (!rerank) return trimmed
   return rerankResults(trimmed, query, limit)
+}
+
+/* ── 阶段 8：搜索倒排索引 ────────────────────────────────────────────────
+ * 结构：bigram → Set<条目序号> 与 单字 → Set<条目序号>（对每条 all 文本建）。
+ * 缓存按条目指纹失效（file+all 长度变化即重建）。
+ * 用法：
+ *  - entriesContaining(term)：|term|≥2 用其 bigram 求交集，|term|=1 用单字表，
+ *    再对候选逐条精确 includes 校验（超集→校验，保证**无假阴、无假阳**）。
+ *  - countContaining = entriesContaining 的长度（df 的精确值）。
+ *  - candidateIdsFor = 得分>0 的条目超集（见 searchEntries 内注释）。
+ */
+let SEARCH_INDEX = null // { key, bigram: Map<bg,Set<int>>, char: Map<char,Set<int>>, all: string[] }
+
+function searchIndexOf(parsed) {
+  const key = parsed.map((p, i) => `${p.entry.file}:${p.all.length}`).join('|')
+  if (SEARCH_INDEX && SEARCH_INDEX.key === key) return SEARCH_INDEX
+  const bigram = new Map()
+  const char = new Map()
+  const all = []
+  for (let i = 0; i < parsed.length; i++) {
+    const s = parsed[i].all
+    all.push(s)
+    for (let j = 0; j < s.length; j++) {
+      const ch = s[j]
+      let cs = char.get(ch)
+      if (!cs) { cs = new Set(); char.set(ch, cs) }
+      cs.add(i)
+      if (j + 2 <= s.length) {
+        const bg = s.slice(j, j + 2)
+        let bs = bigram.get(bg)
+        if (!bs) { bs = new Set(); bigram.set(bg, bs) }
+        bs.add(i)
+      }
+    }
+  }
+  SEARCH_INDEX = { key, bigram, char, all }
+  return SEARCH_INDEX
+}
+
+/** 用倒排表求「包含 term 的条目序号」（先超集、后精确 includes 校验 → 结果与全量扫描一致）。 */
+function entriesContaining(idx, term) {
+  const t = String(term)
+  if (!t) return []
+  let cand
+  if (t.length === 1) {
+    cand = idx.char.get(t)
+    if (!cand) return []
+  } else {
+    // 取该 term 的前两个 bigram 求交（交集越小越快；前两个足以构成超集）
+    const bg1 = t.slice(0, 2)
+    const bg2 = t.slice(2, 4) || bg1
+    const a = idx.bigram.get(bg1)
+    const b = idx.bigram.get(bg2)
+    if (!a) return []
+    if (!b) cand = a
+    else {
+      // 小集合驱动求交
+      const [small, large] = a.size <= b.size ? [a, b] : [b, a]
+      const inter = new Set()
+      for (const i of small) if (large.has(i)) inter.add(i)
+      cand = inter
+    }
+  }
+  const out = []
+  for (const i of cand) if (idx.all[i].includes(t)) out.push(i)
+  return out
+}
+
+function countContaining(idx, term) {
+  return entriesContaining(idx, term).length
+}
+
+/** 得分可能 > 0 的条目序号（超集）：含任一 termSet 词，或含 ≥2 个查询单字（弱命中分支）。 */
+function candidateIdsFor(idx, { q, tokens, termSet, unigrams }) {
+  const set = new Set()
+  const addTerm = (t) => { for (const i of entriesContaining(idx, t)) set.add(i) }
+  addTerm(q)
+  for (const t of tokens) addTerm(t)
+  for (const t of termSet) addTerm(t)
+  // 弱命中分支：score===0 且 ≥2 个查询单字命中 → 需要"含 ≥2 个查询单字"的条目
+  if (unigrams.length >= 2) {
+    const hitCount = new Map()
+    for (const ch of unigrams) {
+      const posts = idx.char.get(ch)
+      if (!posts) continue
+      for (const i of posts) hitCount.set(i, (hitCount.get(i) ?? 0) + 1)
+    }
+    for (const [i, c] of hitCount) if (c >= 2) set.add(i)
+  }
+  // 保序返回（与原全量遍历顺序一致 → 排序稳定）
+  return [...set].sort((a, b) => a - b)
 }
 
 /**
@@ -1997,10 +2204,10 @@ function main(argv) {
         const badge = r.state ? ` [${r.state}]` : ''
         print(`[${Number(score).toFixed(1)}${weak ? ' 弱命中' : ''}${entry.fromGlobal ? ' 全局库' : ''}${badge}] ${entry.front.name} — ${entry.front.description ?? ''}`)
         if (r.why) print(`     为何召回：${r.why}`)
-        print(`     文件 ${entry.file}｜type=${entry.meta.type ?? '?'} scope=${entry.meta.scope ?? '?'}`)
-        if (snippet) print(`     片段 ${snippet}`)
+        print(t('     文件 {0}｜type={1} scope={2}', entry.file, entry.meta.type ?? '?', entry.meta.scope ?? '?'))
+        if (snippet) print(`${t('     片段')} ${snippet}`)
       }
-      if (useTwoStage) print('  （两阶段召回：IDF 候选 → 可信度/新鲜度/反馈重排）')
+      if (useTwoStage) print(t('  （两阶段召回：IDF 候选 → 可信度/新鲜度/反馈重排）'))
       return 0
     }
     case 'feedback': {
@@ -2009,7 +2216,7 @@ function main(argv) {
       if (!q) { print(t('用法：feedback <query> <采用的条目名,逗号分隔> [原因]')); return 2 }
       const adopted = (adoptedCsv ?? '').split(/[,，、]/).map((s) => s.trim()).filter(Boolean)
       logRecallFeedback(q, adopted, adopted, reasonParts.join(' '))
-      print(`[已记录反馈] query=${q} 采用 ${adopted.length} 条`)
+      print(t('[已记录反馈] query={0} 采用 {1} 条', q, adopted.length))
       return 0
     }
     case 'show': {
@@ -2017,7 +2224,7 @@ function main(argv) {
       const local = resolveEntryFile(memoryRoot(), name)
       const inGlobal = resolveEntryFile(globalRoot(), name)
       const file = existsSync(local) ? local : (name && existsSync(inGlobal) ? inGlobal : null)
-      if (!file) { print(`找不到条目：${name ?? '(缺 name)'}`); return 1 }
+      if (!file) { print(t('找不到条目：{0}', name ?? '(缺 name)')); return 1 }
       logStat('show', { name })
       print(readText(file))
       return 0
@@ -2032,58 +2239,58 @@ function main(argv) {
       const result = storeText(text, { sourceLabel: src, overwrite, force, source })
       logStat('store', { source: src, ok: result.ok })
       if (!result.ok) {
-        print(`[拒绝写入] ${src}`)
+        print(t('[拒绝写入] {0}', src))
         for (const p of result.problems) print(`  - ${p}`)
         return 1
       }
       if (result.draft) {
-        print(`[已存草稿] ${result.file} —— ${result.note}`)
-        print(`  批准：node tools/mem.mjs approve ${result.file}`)
+        print(t('[已存草稿] {0} —— {1}', result.file, result.note))
+        print(t('  批准：node tools/mem.mjs approve {0}', result.file))
         return 0
       }
-      print(`[已写入] ${result.file}（来源 ${result.sourceLabel}）`)
-      print(`[索引] ${result.index.listed} 条，${result.index.bytes} 字节`)
-      if (result.superseded?.length) print(`[取代] ${result.superseded.join('、')} 已归档`)
+      print(t('[已写入] {0}（来源 {1}）', result.file, result.sourceLabel))
+      print(t('[索引] {0} 条，{1} 字节', result.index.listed, result.index.bytes))
+      if (result.superseded?.length) print(t('[取代] {0} 已归档', result.superseded.join(sepList())))
       for (const w of result.supWarn ?? []) print(`  ⚠ ${w}`)
       autoInject()
       return 0
     }
     case 'write-mode': {
-      if (!rest[0]) { print(`当前写入模式：${getWriteMode()}（可选 ${WRITE_MODES.join(' / ')}）`); return 0 }
+      if (!rest[0]) { print(t('当前写入模式：{0}（可选 {1}）', getWriteMode(), WRITE_MODES.join(' / '))); return 0 }
       const r = setWriteMode(rest[0])
-      if (!r.ok) { print(`[失败] ${r.problems.join('；')}`); return 1 }
-      print(`[已设置] 写入模式 = ${r.mode}`)
+      if (!r.ok) { print(t('[失败] {0}', r.problems.join(sepList()))); return 1 }
+      print(t('[已设置] 写入模式 = {0}', r.mode))
       return 0
     }
     case 'drafts': {
       const drafts = listDrafts()
-      if (!drafts.length) { print('（暂无待审批草稿）'); return 0 }
+      if (!drafts.length) { print(t('（暂无待审批草稿）')); return 0 }
       for (const d of drafts) {
-        const flag = d.problems.length ? ` ⚠ ${d.problems.length} 处待补` : ''
+        const flag = d.problems.length ? t(' ⚠ {0} 处待补', d.problems.length) : ''
         print(`- ${d.file} :: ${d.name} — ${d.description}${flag}`)
       }
-      print(`共 ${drafts.length} 个草稿；批准：approve <file>｜拒绝：reject <file> [原因]`)
+      print(t('共 {0} 个草稿；批准：approve <file>｜拒绝：reject <file> [原因]', drafts.length))
       return 0
     }
     case 'approve': {
       const r = approveDraft(rest[0], { by: 'cli' })
-      if (!r.ok) { print(`[失败] ${r.problems.join('；')}`); return 1 }
-      print(`[已批准] ${r.approvedFrom} → ${r.file}（索引 ${r.index.listed} 条 / ${r.index.bytes} 字节）`)
+      if (!r.ok) { print(t('[失败] {0}', r.problems.join(sepList()))); return 1 }
+      print(t('[已批准] {0} → {1}（索引 {2} 条 / {3} 字节）', r.approvedFrom, r.file, r.index.listed, r.index.bytes))
       autoInject()
       return 0
     }
     case 'reject': {
       const reason = rest.slice(1).join(' ')
       const r = rejectDraft(rest[0], reason)
-      if (!r.ok) { print(`[失败] ${r.problems.join('；')}`); return 1 }
-      print(`[已拒绝] 草稿归档至 ${r.rejectedTo}`)
+      if (!r.ok) { print(t('[失败] {0}', r.problems.join(sepList()))); return 1 }
+      print(t('[已拒绝] 草稿归档至 {0}', r.rejectedTo))
       return 0
     }
     case 'forget': {
       const result = forgetEntry(rest[0])
       logStat('forget', { name: rest[0] ?? '', ok: result.ok })
-      if (!result.ok) { print(`[失败] ${result.problems.join('；')}`); return 1 }
-      print(`[已归档] ${result.archivedTo}`)
+      if (!result.ok) { print(t('[失败] {0}', result.problems.join(sepList()))); return 1 }
+      print(t('[已归档] {0}', result.archivedTo))
       autoInject()
       return 0
     }
@@ -2091,30 +2298,30 @@ function main(argv) {
       const result = syncInjection()
       logStat('inject', { ok: result.ok })
       if (!result.ok) {
-        print('[注入失败·已降级]')
+        print(t('[注入失败·已降级]'))
         for (const p of result.problems) print(`  - ${p}`)
         return 1
       }
-      print(`[已注入 AGENTS.md] ${result.bytes} 字节（≤${LIMITS.indexBytes} 硬顶）｜列出 ${result.listed} 条，砍 ${result.skipped} 条`)
+      print(t('[已注入 AGENTS.md] {0} 字节（≤{1} 硬顶）｜列出 {2} 条，砍 {3} 条', result.bytes, LIMITS.indexBytes, result.listed, result.skipped))
       return 0
     }
     case 'global-sync': {
       const r = globalSync()
-      print(`[全局库同步] ${r.root} ← ${r.copied.length} 条 scope:global${r.removed.length ? `，清理旧副本 ${r.removed.length} 个` : ''}`)
+      print(t('[全局库同步] {0} ← {1} 条 scope:global{2}', r.root, r.copied.length, r.removed.length ? t('，清理旧副本 {0} 个', r.removed.length) : ''))
       return 0
     }
     case 'draft': {
       const result = draftEntry(rest.join(' '))
       logStat('draft', { file: result.file })
-      print(`[草稿] ${result.file}`)
+      print(t('[草稿] {0}', result.file))
       print(t('  填好四段（验证段带可定位引用）并经人工审批后：node tools/mem.mjs store <该文件>'))
       return 0
     }
     case 'review': {
       const result = reviewEntry(rest[0])
-      if (!result.ok) { print(`[失败] ${result.problems.join('；')}`); return 1 }
+      if (!result.ok) { print(t('[失败] {0}', result.problems.join(sepList()))); return 1 }
       logStat('review', { name: rest[0] })
-      print(`[已复核] ${result.file} → verified=${result.verified} review=${result.review}`)
+      print(t('[已复核] {0} → verified={1} review={2}', result.file, result.verified, result.review))
       return 0
     }
     case 'map': {
@@ -2153,10 +2360,10 @@ function main(argv) {
         if (tok.startsWith('--reason=')) { reasonParts.push(tok.slice('--reason='.length)); break }
       }
       const r = resolveConflict(entry, prefer, reasonParts.join(' '))
-      if (!r.ok) { print(`[裁决失败] ${r.problems.join('；')}`); return 1 }
-      print(`[已裁决] ${r.entry} → 由「${r.prefer}」胜出（${r.resolvedAt}）`)
-      print(`  理由：${r.reason}`)
-      print(`  ${r.entry} 状态 = ${r.state}｜双方均保留在库中（未硬删）`)
+      if (!r.ok) { print(t('[裁决失败] {0}', r.problems.join(sepList()))); return 1 }
+      print(t('[已裁决] {0} → 由「{1}」胜出（{2}）', r.entry, r.prefer, r.resolvedAt))
+      print(`  ${t('理由：')}${r.reason}`)
+      print(`  ${t('{0} 状态 = {1}｜双方均保留在库中（未硬删）', r.entry, r.state)}`)
       autoInject()
       return 0
     }

@@ -1,6 +1,6 @@
 {
   "name": "@local/dsh-memory",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "private": true,
   "type": "module",
   "description": "Cross-session lesson book (agent wrong-answer notebook) for DeepSeek Harness: evidence-enforced Markdown lessons, injected index, mem_recall / mem_save tools and /memory commands.",

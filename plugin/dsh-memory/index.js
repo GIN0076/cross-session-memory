@@ -28,8 +28,10 @@ import { defineTool } from '@deepseek-ai/dsh-tools'
 /** Cordis plugin name (for Loader diagnostics). */
 export const name = 'memory'
 
-/** Required capabilities; sessionQuery / commands are accessed defensively via ctx.get(). */
-export const inject = ['tools', 'systemPrompt']
+/** Required capabilities; sessionQuery / commands are accessed defensively via ctx.get().
+ *  `connection` is required by the read-only RPC's auth fence (ctx.connection is a strict
+ *  proxy — reading it without declaring inject throws "cannot get property connection without inject"). */
+export const inject = ['tools', 'systemPrompt', 'connection']
 
 /**
  * Engine resolution candidates, in order:
@@ -536,6 +538,21 @@ export function apply(ctx, config = {}) {
       kind: 'exact',
       path: RPC_PATH,
       handler: async (req, res) => {
+        // Top-level guard: any uncaught exception becomes a JSON 500 instead of the
+        // DSH webserver's bare-body 400 (which would show the card only "HTTP 400").
+        try {
+          await handleRpc(req, res)
+        } catch (error) {
+          try {
+            if (!res.headersSent) sendJson(res, 500, { ok: false, error: `rpc handler threw: ${String((error && error.message) || error)}` })
+            else res.destroy()
+          } catch { /* response already gone */ }
+        }
+      },
+    }), 'dsh-memory: readonly rpc route')
+  })
+
+  async function handleRpc(req, res) {
         // Connection auth (cookie/token, 401/403 terminate)
         const connection = Reflect.get(ctx, 'connection')
         if (connection && typeof connection.requestRejection === 'function') {
@@ -582,9 +599,8 @@ export function apply(ctx, config = {}) {
         } catch (error) {
           sendJson(res, 200, { ok: false, error: String((error && error.message) || error) })
         }
-      },
-    }), 'dsh-memory: readonly rpc route')
-  })
+  }
+
   // ctx.inject returns a fiber (lesson cordis-inject-returns-fiber-not-disposer) — close defensively
   ctx.effect(() => { try { offRoute?.close?.() } catch { /* already closed or not a fiber */ } }, 'dsh-memory: rpc route cleanup')
 }

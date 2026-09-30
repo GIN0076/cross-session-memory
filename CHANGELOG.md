@@ -1,5 +1,39 @@
 # Changelog
 
+## Plugin 1.2.0 / Bundle 0.5.0 — 2026-09-30 — entry cap 1000, search inverted index, English tail
+
+Follow-up to 0.4.0: performance work that matters at scale, a higher entry cap, and a
+complete English surface for the CLI.
+
+### Changed
+- **Entry cap raised 200 → 1000** (`LIMITS.entries`). The injected index stays ≤ 2 KB / 60
+  lines (token cost per turn is unchanged — only the most valuable entries are injected;
+  the rest are reachable via `mem_recall`). This decouples "how many lessons you can store"
+  from "how much prompt you pay".
+- **Search inverted index (phase 8)** — `searchEntries` now builds a bigram/char inverted
+  index (`searchIndexOf`) to shrink the candidate set, then runs the *unchanged* scoring
+  pass over candidates only. `entriesContaining` intersects posting lists and verifies with
+  an exact `includes`, so results are **bit-for-bit identical** to the brute-force scan
+  (pinned by a 17-query equivalence test).
+- **`listEntries` parse cache** — the real hot spot was re-reading and re-parsing every
+  entry file on each search (39 ms at N=1000, ~47% of a search). A mtime/size fingerprint
+  cache cuts it to ~9.5 ms; steady-state search is now **~1.1 ms and flat as N grows**
+  (a cold 42 ms reading was measurement noise from the uncached disk reads).
+- **Near-duplicate pre-filter** — `findNearDuplicates` skips pairs whose shingle-set size
+  ratio is already below the Jaccard threshold (a strict upper bound: `J ≤ min/max`), so no
+  near-duplicate can be missed while most full intersections are avoided.
+- **`connection` inject fix** — the read-only RPC's auth fence reads `ctx.connection`, which
+  is a strict proxy; without declaring `connection` in `inject` it threw and the DSH
+  webserver turned that into a bare-body 400. The host handler now also wraps any uncaught
+  error into a JSON 500 (readable) instead of the bare 400, and the client surfaces the
+  response body on failure.
+
+### i18n
+- English tail completed: `map`'s six graph sections and relation arrows, `gather`'s
+  section headings and evidence lines, and all CLI status lines (`[reviewed]`, `[stored]`,
+  `[failed]`, …) now go through `t()` with `MESSAGES_EN` entries. Entry *content*
+  (lesson descriptions/bodies) is deliberately left untranslated — it is data, not UI copy.
+
 ## Plugin 1.1.0 / Bundle 0.4.0 — 2026-09-30 — read-only settings card, 16 subcommands, phase-8 hardening
 
 The biggest release since 0.3.0. The plugin gains a **client half** for the first
