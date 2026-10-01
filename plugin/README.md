@@ -12,8 +12,8 @@
 | Prompt injection | `.memory/MEMORY.md` index verbatim ≤ 2 KB every turn (fail-silent degrade — **never blocks a session**) |
 | Model tool `mem_recall` | Lesson-book search (IDF + CJK bigram, half-words hit) **∪** full-text session search (CJK title-level fallback until M3) |
 | Model tool `mem_save` | Full write gate (four sections + locatable reference + secret rejection + near-duplicate interception). Every call returns `ask` through `tools/pre-execute` → **human approval** |
-| Human command `/memory` | `recall <q>` \| `save <file.md>` \| `doctor` \| `review <name>` \| `map [name]` \| `conflicts` \| `resolve <loser> --prefer <winner> --reason <text>` \| `explain <name>` \| `verify [name]` \| `feedback <q> <adopted>` \| `stats [days]` \| `draft [topic]` \| `drafts` \| `approve <draft>` \| `reject <draft>` \| `write-mode [mode]` — typing it by hand **is** the approval |
-| Telemetry | recall/store rows in `.memory/stats.jsonl` (observation data for the M3 promotion thresholds) |
+| Human command `/memory` | `recall <q>` \| `save <file.md>` \| `doctor` \| `review <name>` \| `map [name]` \| `conflicts` \| `resolve <loser> --prefer <winner> --reason <text>` \| `explain <name>` \| `verify [name]` \| `feedback <q> <adopted>` \| `stats [days]` \| `draft [topic]` \| `drafts` \| `approve <draft> [--overwrite\|--force]` \| `reject <draft>` \| `prune-drafts [--apply]` \| `write-mode [mode]` — typing it by hand **is** the approval |
+| Telemetry | recall/store rows in `.memory/stats.jsonl` (observation data for the M3 promotion thresholds). `hits` counts **strong** hits only, so the settings card's hit rate is not a tautology |
 
 ## Requirements
 

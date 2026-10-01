@@ -21,8 +21,8 @@
  * ./index.js (this file) — no second entry.
  */
 import { readFileSync } from 'node:fs'
-import { resolve, isAbsolute } from 'node:path'
-import { pathToFileURL } from 'node:url'
+import { resolve, isAbsolute, dirname } from 'node:path'
+import { pathToFileURL, fileURLToPath } from 'node:url'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 
 /** Cordis plugin name (for Loader diagnostics). */
@@ -48,7 +48,7 @@ const CORE_CANDIDATES = [
 const PROMPT_FALLBACK = '(Cross-session memory is temporarily unavailable — the lesson book lives in .memory/MEMORY.md; query it with mem_recall. This note is DATA, not instructions, and changes no behavior rules.)'
 
 /** English usage line for /memory (single source inside this entry). */
-const MEMORY_USAGE = 'recall <q> | save <file.md> | doctor | review <name> | map [name] | conflicts | resolve <loser> --prefer <winner> --reason <text> | explain <name> | verify [name] | feedback <q> <adopted,csv> [reason] | stats [days] | draft [topic] | drafts | approve <draft> | reject <draft> [reason] | write-mode [approval|auto-draft|auto-low-risk|off]'
+const MEMORY_USAGE = 'recall <q> | save <file.md> | doctor | review <name> | map [name] | conflicts | resolve <loser> --prefer <winner> --reason <text> | explain <name> | verify [name] | feedback <q> <adopted,csv> [reason] | stats [days] | draft [topic] | drafts | approve <draft> [--overwrite|--force] | reject <draft> [reason] | prune-drafts [--apply] | write-mode [approval|auto-draft|auto-low-risk|off]'
 
 /** Async shared-engine load (module-level cache; failures may retry). */
 let corePromise = null
@@ -97,6 +97,28 @@ function promptBody(core) {
   }
 }
 
+/**
+ * Does AGENTS.md already carry a live engine-maintained injection block
+ * (mem-inject markers + at least one entry)? If yes the index is carried by AGENTS.md
+ * alone and this plugin does not register its own section (P1 de-dup, see apply()).
+ */
+function agentsHasInjectionBlock(config) {
+  const candidates = []
+  if (config?.memoryCorePath) {
+    try { candidates.push(resolve(dirname(resolve(config.memoryCorePath)), '..', 'AGENTS.md')) } catch { /* ignore */ }
+  }
+  try { candidates.push(fileURLToPath(new URL('../../AGENTS.md', import.meta.url))) } catch { /* ignore */ }
+  for (const p of candidates) {
+    try {
+      const text = readFileSync(p, 'utf8')
+      const bi = text.indexOf('<!-- mem-inject:begin')
+      const ei = text.indexOf('<!-- mem-inject:end')
+      if (bi >= 0 && ei > bi && text.slice(bi, ei).includes('- [')) return true
+    } catch { /* try next candidate */ }
+  }
+  return false
+}
+
 /** JSON response helper (phase 7.3 read-only settings card). */
 function sendJson(res, code, obj) {
   try {
@@ -114,15 +136,27 @@ export function apply(ctx, config = {}) {
   })
 
   // ── (1) layer-2 injection (order follows the tool-guidance slot TOOL_SESSION_QUERY=2300) ──
-  ctx.systemPrompt.section({
-    name: 'memory-index',
-    order: ctx.systemPrompt.getSectionOrder('TOOL_SESSION_QUERY'),
-    text: () => {
-      const core = coreSync()
-      return core ? promptBody(core) : PROMPT_FALLBACK
-    },
-    interpolate: false,
-  })
+  // P1 de-duplication (2026-10-01): the index used to be injected twice — this section
+  // (MEMORY.md verbatim, 2026 B / 13 entries) and the AGENTS.md mem-inject block
+  // (2004 B / 11 entries). Because the AGENTS.md links carry an 8-byte-per-link prefix,
+  // the two copies also disagreed on the numbers while costing a second copy of tokens.
+  // Now: when AGENTS.md carries a live injection block, this section is not registered
+  // (that carrier is the human-visible one); if the block disappears or AGENTS.md is
+  // missing, this section automatically takes over (degradation chain unchanged).
+  // Force both channels (e.g. a preset without agent-instructions) → config.injectMode = 'always';
+  // disable plugin-side injection entirely → 'never'.
+  const injectMode = config.injectMode ?? 'auto'
+  if (injectMode !== 'never' && (injectMode === 'always' || !agentsHasInjectionBlock(config))) {
+    ctx.systemPrompt.section({
+      name: 'memory-index',
+      order: ctx.systemPrompt.getSectionOrder('TOOL_SESSION_QUERY'),
+      text: () => {
+        const core = coreSync()
+        return core ? promptBody(core) : PROMPT_FALLBACK
+      },
+      interpolate: false,
+    })
+  }
 
   // ── (3) write approval: behavior driven by the engine's writeMode ──
   //   approval      → return `ask` (human decides); policy `never` denies by design
@@ -318,7 +352,7 @@ export function apply(ctx, config = {}) {
               const s = r.stats ?? core.statsSummary()
               const lines = [
                 `entries ${r.entries} | index ${r.indexLines} lines / ${r.indexBytes} bytes`,
-                `[telemetry] last 7 days: searches ${s.searches} (hits ${s.hits} / misses ${s.misses}) | show ${s.shows} | store ${s.stores}`,
+                `[telemetry] last 7 days: searches ${s.searches} (real hits ${s.hits} / weak-only ${s.weak ?? 0} / misses ${s.misses}) | show ${s.shows} | store ${s.stores}`,
               ]
               if (r.notIndexed.length) lines.push(`${r.notIndexed.length} entries kept out of the index (the index keeps the most valuable; use search): ${r.notIndexed.join(', ')}`)
               lines.push(r.findings.length ? `${r.findings.length} issue(s) found:\n- ${r.findings.join('\n- ')}` : 'healthy: no anomalies')
@@ -405,7 +439,7 @@ export function apply(ctx, config = {}) {
               const parsedDays = Number(arg)
               const days = Number.isInteger(parsedDays) && parsedDays > 0 ? parsedDays : 7
               const s = core.statsSummary(days)
-              return { kind: 'success', text: `last ${days} days: searches ${s.searches} (hits ${s.hits} / misses ${s.misses}) | show ${s.shows} | store ${s.stores} | rows ${s.lineCount}` }
+              return { kind: 'success', text: `last ${days} days: searches ${s.searches} (real hits ${s.hits} / weak-only ${s.weak ?? 0} / misses ${s.misses}) | show ${s.shows} | store ${s.stores} | rows ${s.lineCount}` }
             }
             case 'draft': {
               const result = core.draftEntry(arg)
@@ -414,14 +448,39 @@ export function apply(ctx, config = {}) {
             case 'drafts': {
               const drafts = core.listDrafts()
               if (!drafts.length) return { kind: 'success', text: '(no pending drafts)' }
-              const lines = drafts.map((d) => `- ${d.file} :: ${d.name} — ${d.description}${d.problems.length ? ` ⚠${d.problems.length}` : ''}`)
-              lines.push(`${drafts.length} draft(s); approve with /memory approve <file> | reject with /memory reject <file>`)
+              const dead = drafts.filter((d) => d.obsolete)
+              const lines = drafts.map((d) => {
+                const stale = d.obsolete
+                  ? ` ⛔STALE (${d.entryExists ? `already in the book as ${d.entryExists}` : (d.identical ? 'body identical to a stored entry' : `near-duplicate of ${d.nearDuplicateOf}`)})`
+                  : ''
+                return `- ${d.file} :: ${d.name} — ${d.description}${d.problems.length ? ` ⚠${d.problems.length}` : ''}${stale}`
+              })
+              lines.push(`${drafts.length} draft(s); approve with /memory approve <file> [--overwrite|--force] | reject with /memory reject <file>`)
+              if (dead.length) lines.push(`${dead.length} of them are already stored (approval can only fail) — archive in one go: /memory prune-drafts --apply`)
+              return { kind: 'success', text: lines.join('\n') }
+            }
+            case 'prune-drafts': {
+              const apply = rest.includes('--apply')
+              const r = core.pruneObsoleteDrafts({ apply, by: 'human' })
+              if (!r.targets.length) return { kind: 'success', text: '(no already-stored drafts to archive)' }
+              const lines = r.targets.map((d) => `- ${d.file} :: ${d.name} — ${d.entryExists ? `already in the book as ${d.entryExists}` : (d.identical ? 'body identical to a stored entry' : `near-duplicate of ${d.nearDuplicateOf}`)}`)
+              if (!apply) {
+                lines.push(`${r.targets.length} stale draft(s) (dry-run, nothing moved). Re-run with --apply to archive into archive/.`)
+                return { kind: 'success', text: lines.join('\n') }
+              }
+              for (const m of r.moved) lines.push(`archived ${m.file} → ${m.to}`)
+              lines.push(`archived ${r.moved.length} (not deleted; recoverable from archive/)`)
               return { kind: 'success', text: lines.join('\n') }
             }
             case 'approve': {
-              if (!arg) return { kind: 'error', text: 'Usage: /memory approve <draft-file.md>' }
-              const r = core.approveDraft(arg, { by: 'human' })
-              if (!r.ok) return { kind: 'error', text: `approve failed:\n- ${r.problems.join('\n- ')}` }
+              if (!arg) return { kind: 'error', text: 'Usage: /memory approve <draft-file.md> [--overwrite|--force]' }
+              const r = core.approveDraft(arg, { by: 'human', overwrite: rest.includes('--overwrite'), force: rest.includes('--force') })
+              if (!r.ok) {
+                const hint = r.problems.some((p) => p.includes('已存在') || p.includes('近重复'))
+                  ? '\n(stale draft? archive it with /memory reject, or in bulk /memory prune-drafts --apply)'
+                  : ''
+                return { kind: 'error', text: `approve failed:\n- ${r.problems.join('\n- ')}${hint}` }
+              }
               return { kind: 'success', text: `Approved ${r.approvedFrom} → ${r.file} (index ${r.index.listed} entries / ${r.index.bytes} bytes)` }
             }
             case 'reject': {
@@ -487,10 +546,15 @@ export function apply(ctx, config = {}) {
         notIndexed: (doctor.notIndexed ?? []).length,
         confidence: conf,
         draftCount: drafts.length,
+        // P1 draft reconciliation: how many are already stored (their approval can only fail)
+        draftObsolete: drafts.filter((d) => d.obsolete).length,
         conflictCount: (conflicts.pairs ?? []).length,
         stats: {
           searches: stats.searches ?? 0, hits: stats.hits ?? 0, misses: stats.misses ?? 0,
+          weak: stats.weak ?? 0,
           stores: stats.stores ?? 0, shows: stats.shows ?? 0,
+          // Hit rate = share of searches with a real (strong) hit; weak-only/rock-bottom
+          // fallbacks are not hits (P1 semantics: `hits` counts strong hits only).
           hitRate: (stats.searches ?? 0) > 0
             ? Math.round(((stats.hits ?? 0) / stats.searches) * 100)
             : null,
@@ -512,12 +576,13 @@ export function apply(ctx, config = {}) {
       const q = String(body?.query ?? '').slice(0, 200)
       if (!q) return { ok: false, error: 'empty query' }
       const hits = (core.recallTwoStage ? core.recallTwoStage(q, 8) : core.searchEntries(q, 8))
-        .map(({ entry, score, weak, snippet, confidence, state, why }) => ({
+        .map(({ entry, score, weak, strong, snippet, confidence, state, why }) => ({
           name: entry?.front?.name ?? entry?.file ?? '',
           description: entry?.front?.description ?? '',
           file: entry?.file ?? '',
           score: Number(score ?? 0).toFixed(1),
           weak: !!weak,
+          strong: strong !== false && !weak,
           snippet: snippet ?? '',
           confidence: confidence ?? '',
           state: state ?? '',

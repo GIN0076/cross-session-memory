@@ -7,14 +7,15 @@
  *  - 无「验证」字段不许写；「验证」段缺可定位引用（store 时）拒写；密钥拒绝；超限拒绝
  *  - 冲突只标记不合并；检索只用字面匹配（不做向量/RRF/衰减）
  *
- * 用法（23 命令 + help；命令数口径以本表为准，README/COMMANDS.md 需与此一致）：
+ * 用法（24 命令 + help；命令数口径以本表为准，README/COMMANDS.md 需与此一致）：
  *   index | inject | global-sync                       # 索引 / 同步自动注入段 / 全局库镜像
- *   list | search <q> [limit] [--two-stage] | show     # 列表 / 检索（字面+n-gram+aliases，IDF 加权） / 全文
+ *   list | search <q> [limit] [--two-stage] | show     # 列表 / 检索（字面+n-gram+aliases，IDF 加权+相关性下限） / 全文
  *   <name> | feedback <q> <采用> [原因]                # 详情 / 召回反馈闭环
  *   map [name] | gather <q> [budget]                   # 文本图谱（六段） / 合议包（可信度分层证据包）
  *   store <file|-> [--overwrite] [--force]             # 入库（四段+引用强制、密钥拒写、近重复拦截）
- *   draft [主题] | drafts | approve <草稿> | reject    # 草稿骨架 / 待审列表 / 批准 / 拒绝（都归档不硬删）
- *   <草稿> [原因] | forget <name> | review <name>      # 归档 / 复核刷新（verified=今天，review=+90 天）
+ *   draft [主题] | drafts | approve <草稿> | reject    # 草稿骨架 / 待审列表（自动对账旧稿） / 批准 / 拒绝（都归档不硬删）
+ *   <草稿> [原因] | prune-drafts [--apply]             # 归档 / 批量归档"已入库的旧草稿"
+ *   forget <name> | review <name>                      # 归档 / 复核刷新（verified=今天，review=+90 天）
  *   conflicts | resolve <败方> --prefer <胜方>         # 冲突对列出 / 显式裁决（阶段 6）
  *        --reason <理由>
  *   explain <name> | verify [name] | write-mode [模式] # 可解释召回 / 白名单验证 / 写入模式
@@ -63,6 +64,18 @@ export const LIMITS = {
   descChars: 28,
   simThreshold: 0.6,      // P0-6：近重复拦截阈值（3-gram Jaccard）
   indexFooterBytes: 160,  // P0-7：索引尾注预算（列出未进索引的条目名）
+  // ── P1 相关性下限（2026-10-01）：修「搜什么都有结果」──
+  // 强命中必须满足其一：整串命中 / ASCII 词命中 / bigram 全覆盖 / bigram 覆盖率达标。
+  // 只靠"共同常见词"堆分的命中不再返回，落空才记 miss（命中率因此变成真指标）。
+  // 注：曾试过「命中稀有 bigram（df≤2）也算强命中」——实测会放进跨词边界的垃圾
+  // bigram（如「在的」只出现在 1 条里），乱码查询因此仍能蒙到 1 条，故该信号已删除。
+  gramCoverage: 0.4,      // 强命中：查询 bigram 覆盖率下限（2 字查询=全覆盖，6 字查询≈命中 3 个）
+  weakUnigramRatio: 0.6,  // 弱命中（垫底 0.5 分）：查询单字覆盖率下限，长查询不再靠"沾两个字"垫底
+  weakKeptMax: 3,         // 弱命中最多条数（防尾部噪音）
+  // ── P1 卫生（2026-10-01）：日志/备份不无限增长 ──
+  backupKeep: 20,             // .memory/backup 最多保留的 AGENTS.md 备份份数
+  statsRotateBytes: 1_000_000, // stats.jsonl 超过此体积时按天数轮转
+  statsRetainDays: 180,        // 轮转后保留的埋点天数
 }
 
 /**
@@ -274,7 +287,8 @@ export const MEMORY_SUBCOMMANDS = [
   'recall <q>', 'save <file.md>', 'doctor', 'review <name>', 'map [name]',
   'conflicts', 'resolve <败方> --prefer <胜方> --reason <理由>',
   'explain <name>', 'verify [name]', 'feedback <q> <采用,逗号> [原因]',
-  'stats [days]', 'draft [主题]', 'drafts', 'approve <草稿>', 'reject <草稿> [原因]',
+  'stats [days]', 'draft [主题]', 'drafts', 'approve <草稿> [--overwrite|--force]',
+  'reject <草稿> [原因]', 'prune-drafts [--apply]',
   'write-mode [approval|auto-draft|auto-low-risk|off]',
 ].join(' | ')
 
@@ -877,10 +891,11 @@ function syncInjectionLocked() {
   }
   // 覆盖前备份：AGENTS.md 是关键约定文件，注入失败可回滚。
   try {
-    const backupDir = join(memoryRoot(), 'backup')
-    mkdirSync(backupDir, { recursive: true })
+    const backupDirPath = backupDir()
+    mkdirSync(backupDirPath, { recursive: true })
     const stamp = new Date().toISOString().replace(/[:.]/g, '-')
-    copyFileSync(agentsPath, join(backupDir, `AGENTS.md.${stamp}`))
+    copyFileSync(agentsPath, join(backupDirPath, `AGENTS.md.${stamp}`))
+    pruneBackups() // P1：备份不再无限增长（只留最近 backupKeep 份）
   } catch { /* 备份失败不阻塞注入，doctor 会提示 */ }
   writeText(agentsPath, text)
   return { ok: true, bytes: total, listed, skipped }
@@ -904,7 +919,51 @@ export function logStat(cmd, detail = {}) {
     ensureRoot()
     const row = JSON.stringify({ ts: new Date().toISOString(), cmd, ...detail })
     appendFileSync(statsFile(), `${row}\n`, 'utf8')
+    rotateStatsIfNeeded()
   } catch { /* 埋点失败不影响主流程 */ }
+}
+
+/**
+ * P1 卫生（2026-10-01）：stats.jsonl 原先只增不减。超过阈值时按天数轮转（保留最近
+ * statsRetainDays 天），失败静默 —— 埋点永远不阻塞主流程，永不删到空文件。
+ */
+function rotateStatsIfNeeded() {
+  try {
+    const file = statsFile()
+    if (statSync(file).size < LIMITS.statsRotateBytes) return
+    const cutoff = Date.now() - LIMITS.statsRetainDays * 86_400_000
+    const kept = []
+    for (const line of readText(file).split(/\r?\n/)) {
+      if (!line.trim()) continue
+      try {
+        if (Date.parse(JSON.parse(line).ts) >= cutoff) kept.push(line)
+      } catch { /* 坏行丢弃 */ }
+    }
+    writeText(file, kept.length ? `${kept.join('\n')}\n` : '')
+  } catch { /* 轮转失败不影响埋点 */ }
+}
+
+/** .memory/backup（AGENTS.md 注入前备份）目录。 */
+export function backupDir() { return join(memoryRoot(), 'backup') }
+
+/**
+ * P1 卫生（2026-10-01）：syncInjection 每次写记忆都全量备份一份 AGENTS.md，
+ * 原先无清理（实测 13 份 / 68 KB 且持续增长）。这里只保留最近 keep 份。
+ */
+export function pruneBackups(keep = LIMITS.backupKeep) {
+  try {
+    const dir = backupDir()
+    if (!existsSync(dir)) return 0
+    const files = readdirSync(dir)
+      .filter((f) => f.startsWith('AGENTS.md.'))
+      .map((f) => ({ f, t: statSync(join(dir, f)).mtimeMs }))
+      .sort((a, b) => b.t - a.t)
+    let removed = 0
+    for (const { f } of files.slice(keep)) {
+      try { unlinkSync(join(dir, f)); removed += 1 } catch { /* 单个失败忽略 */ }
+    }
+    return removed
+  } catch { return 0 }
 }
 
 /** 阶段 8（隐私）：DSH_MEMORY_TELEMETRY=off 关闭全部本地埋点（stats.jsonl / injection-audit.jsonl）。 */
@@ -985,7 +1044,7 @@ export function recallFeedbackSummary() {
 }
 
 export function statsSummary(days = 7) {
-  const out = { searches: 0, hits: 0, misses: 0, stores: 0, shows: 0, lineCount: 0 }
+  const out = { searches: 0, hits: 0, misses: 0, weak: 0, stores: 0, shows: 0, lineCount: 0 }
   if (!existsSync(statsFile())) return out
   const cutoff = Date.now() - days * 86_400_000
   for (const line of readText(statsFile()).split(/\r?\n/)) {
@@ -996,8 +1055,10 @@ export function statsSummary(days = 7) {
     out.lineCount += 1
     if (row.cmd === 'search') {
       out.searches += 1
+      // P1 口径：hits 自 2026-10-01 起只数强命中（旧行仍是"返回条数"）；weak 为弱命中条数。
       if (row.hits > 0) out.hits += 1
       else out.misses += 1
+      if (row.weak > 0) out.weak += 1
     } else if (row.cmd === 'store') out.stores += 1
     else if (row.cmd === 'show') out.shows += 1
   }
@@ -1092,23 +1153,74 @@ export function draftFromContent(text) {
   return { ok: true, file, draft: true }
 }
 
-/** 列出待审批草稿（返回文件名、name、description、问题数）。 */
+/** 列出待审批草稿（返回文件名、name、description、问题数，**并与库内条目对账**）。
+ *
+ *  P1 修复（2026-10-01）：修复前只列目录内容，草稿是否早已入库一概不知 —— 于是
+ *  「待审草稿 N」长期只增不减（真实案例：9 个里 7 个与库内同名条目并存，2 个字节完全相同），
+ *  而批准它们必然失败（同名 → 「已存在」；异名近重复 → 近重复拦截），人只能手动 reject。
+ *  现在每条草稿都给出：entryExists（库内已有同名条目）/ identical（正文完全相同）/
+ *  nearDuplicateOf（与某条异名条目达近重复阈值），三者任一为真即为"已作废稿"。
+ */
 export function listDrafts() {
   const dir = draftsDir()
   if (!existsSync(dir)) return []
+  const existing = listEntries()
+  const byName = new Map(existing.map((e) => [e.front.name, e]))
   return readdirSync(dir)
     .filter((f) => f.endsWith('.md'))
     .sort()
     .map((f) => {
       const text = readText(join(dir, f))
       const parsed = parseEntry(text, f)
-      return { file: f, name: parsed.front.name ?? f, description: parsed.front.description ?? '', problems: parsed.problems }
+      const twin = byName.get(parsed.front.name) ?? null
+      const identical = twin ? normHash(twin) === normHash(parsed) : false
+      let nearDuplicateOf = null
+      if (!twin) {
+        // 异名近重复：与写入闸门同一阈值（含大小上界预筛，不会漏拦）
+        const near = findNearDuplicates(parsed, existing)
+        if (near.length) nearDuplicateOf = near.sort((a, b) => b.sim - a.sim)[0].file
+      }
+      const entryExists = twin?.file ?? null
+      return {
+        file: f,
+        name: parsed.front.name ?? f,
+        description: parsed.front.description ?? '',
+        problems: parsed.problems,
+        entryExists,
+        identical,
+        nearDuplicateOf,
+        obsolete: Boolean(entryExists || identical || nearDuplicateOf),
+      }
     })
+}
+
+/** 已作废草稿（库内已有同名/同内容条目，批准必然失败的旧稿）。 */
+export function obsoleteDrafts() {
+  return listDrafts().filter((d) => d.obsolete)
+}
+
+/**
+ * P1：批量归档"已作废稿"。默认 dry-run（只报告），`apply: true` 才真正归档到 archive/。
+ * 归档不硬删 —— 与 reject 同一归档通道（文件名前缀 obsolete.），随时可捞回。
+ */
+export function pruneObsoleteDrafts({ apply = false, by = 'human' } = {}) {
+  const targets = obsoleteDrafts()
+  if (!apply) return { ok: true, apply: false, targets, moved: [] }
+  const moved = []
+  for (const d of targets) {
+    const reason = d.entryExists
+      ? `库内已有同名条目 ${d.entryExists}`
+      : (d.identical ? '正文与库内条目完全相同' : `与库内条目 ${d.nearDuplicateOf} 近重复`)
+    const r = rejectDraft(d.file, reason, 'obsolete')
+    if (r.ok) { moved.push({ file: d.file, to: r.rejectedTo, reason }); logStat('prune-draft', { file: d.file, reason, by }) }
+  }
+  return { ok: true, apply: true, targets, moved }
 }
 
 /**
  * 批准草稿 → 正式入库（走完整 store 闸门），成功后归档草稿。
  * `by` 记录批准人/来源，写入 frontmatter 供审计。
+ * `overwrite` 覆盖同名条目；`force` 放行近重复（两者默认关闭，须显式给）。
  */
 export function approveDraft(draftFile, { by = 'human', overwrite = false, force = false } = {}) {
   const dir = draftsDir()
@@ -1119,7 +1231,13 @@ export function approveDraft(draftFile, { by = 'human', overwrite = false, force
   }
   const text = readText(path)
   const result = withMemoryLock(() => storeTextLocked(text, { sourceLabel: `approve:${base}`, overwrite, force }))
-  if (!result.ok) return result
+  if (!result.ok) {
+    // P1：同名/近重复的旧稿批准必然失败 —— 给出可执行的下一步，而不是让人对着报错发呆。
+    const stuck = result.problems.some((p) => p.includes('已存在')) || result.problems.some((p) => p.includes('近重复'))
+    return stuck
+      ? { ...result, problems: [...result.problems, t('该草稿与库内条目冲突：若是旧稿请用 reject 归档（或 mem prune-drafts --apply）；确要替换库内条目请加 --overwrite，确认非重复请加 --force')] }
+      : result
+  }
   // 归档草稿（不硬删）
   const archive = archiveDir()
   mkdirSync(archive, { recursive: true })
@@ -1129,8 +1247,8 @@ export function approveDraft(draftFile, { by = 'human', overwrite = false, force
   return { ...result, approvedFrom: base, by }
 }
 
-/** 拒绝草稿 → 归档到 archive/（可恢复，不硬删）。 */
-export function rejectDraft(draftFile, reason = '') {
+/** 拒绝草稿 → 归档到 archive/（可恢复，不硬删）。`tag` 决定归档文件名前缀。 */
+export function rejectDraft(draftFile, reason = '', tag = 'rejected') {
   const dir = draftsDir()
   const base = String(draftFile ?? '').replace(/^.*[\\/]/, '')
   const path = join(dir, base)
@@ -1140,9 +1258,9 @@ export function rejectDraft(draftFile, reason = '') {
   const archive = archiveDir()
   mkdirSync(archive, { recursive: true })
   const stamp = new Date().toISOString().replace(/[:.]/g, '-')
-  renameSync(path, join(archive, `rejected.${base}.${stamp}`))
-  logStat('reject', { draft: base, reason })
-  return { ok: true, rejectedTo: join(archive, `rejected.${base}.${stamp}`), reason }
+  renameSync(path, join(archive, `${tag}.${base}.${stamp}`))
+  logStat('reject', { draft: base, reason, tag })
+  return { ok: true, rejectedTo: join(archive, `${tag}.${base}.${stamp}`), reason }
 }
 
 /**
@@ -1662,10 +1780,20 @@ export function searchEntries(query, limit = 10, { rerank = false } = {}) {
     else score += gramScore
     // 单字弱命中：恒 0.5 垫底，永不压过真实命中
     const uniHits = unigrams.filter((ch) => p.all.includes(ch)).length
-    const weak = score === 0 && unigrams.length >= 2 && uniHits >= 2
+    const uniNeed = Math.max(2, Math.ceil(unigrams.length * LIMITS.weakUnigramRatio))
+    // ── P1 强命中门槛（相关性下限）──
+    // 修复前：只要任一 bigram/词沾上（哪怕全是「完全」「存在」这种泛词）就 score>0 返回，
+    // 于是任何乱码查询都能拿到一整页"结果"，命中率恒 100% 却没意义。
+    // 现在：没有下面任一强信号 → 不算命中（不进结果，也不计 hit）。
+    const gramCov = bigrams.length ? gramHits / bigrams.length : 0
+    const phraseHit = p.all.includes(q)
+    const asciiTokenHit = tokens.some((tk) => tk !== q && !/[\u4e00-\u9fff]/.test(tk) && p.all.includes(tk))
+    const fullGram = bigrams.length > 0 && gramHits === bigrams.length
+    const strong = phraseHit || asciiTokenHit || fullGram || gramCov >= LIMITS.gramCoverage
+    const weak = !strong && score === 0 && unigrams.length >= 2 && uniHits >= uniNeed
     if (weak) score = 0.5
-    if (score > 0) {
-      scored.push({ entry: p.entry, score, weak, snippet: makeSnippet(p.entry.body, [...termSet]) })
+    if (strong || weak) {
+      scored.push({ entry: p.entry, score, weak, strong, snippet: makeSnippet(p.entry.body, [...termSet]) })
     }
   }
   scored.sort((a, b) => b.score - a.score || a.entry.file.localeCompare(b.entry.file))
@@ -1674,7 +1802,7 @@ export function searchEntries(query, limit = 10, { rerank = false } = {}) {
   let weakKept = 0
   for (const r of scored) {
     if (trimmed.length >= limit) break
-    if (r.weak) { if (weakKept >= 3) continue; weakKept += 1 }
+    if (r.weak) { if (weakKept >= LIMITS.weakKeptMax) continue; weakKept += 1 }
     trimmed.push(r)
   }
   if (!rerank) return trimmed
@@ -1829,8 +1957,17 @@ export function recallTwoStage(query, limit = 5, { candidatePool = 30 } = {}) {
   const included = reranked.map((r) => r.entry.front.name)
   const dropped = pool.filter((r) => !included.includes(r.entry.front.name)).map((r) => r.entry.front.name)
   logInjectionAudit({ included, dropped, bytes: 0, budget: LIMITS.indexBytes })
-  // 召回埋点（保留原 search 语义，便于 stats 命中率统计）
-  logStat('search', { query: String(query ?? '').slice(0, 120), hits: reranked.length, mode: 'two-stage' })
+  // 召回埋点（P1 口径修正）：hits 只数**强命中**（weak 另计）。
+  // 修复前 hits = 返回条数，而返回条数几乎恒 >0（泛词/单字垫底），命中率因此恒 100%、毫无信息。
+  // 现在 hits=0 会记成 miss，卡片上的命中率才是"真找到东西"的比例。
+  const strongCount = reranked.filter((r) => r.strong && !r.weak).length
+  const weakCount = reranked.filter((r) => r.weak).length
+  logStat('search', {
+    query: String(query ?? '').slice(0, 120),
+    hits: strongCount,
+    weak: weakCount,
+    mode: 'two-stage',
+  })
   return reranked
 }
 
@@ -2086,6 +2223,16 @@ export function doctorReport() {
   nearPairs.sort((a, b) => b.sim - a.sim)
   for (const { pair, sim } of nearPairs.slice(0, 5)) notes.push(t('近重复对 {0}（相似度 {1}）', pair, sim.toFixed(2)))
 
+  // P1 草稿对账（2026-10-01）：待审草稿若早已入库，就是**死草稿**——批准必然失败、
+  // 计数只增不减。这里报数并给出归档命令（信息级，不改退出码）。
+  const drafts = listDrafts()
+  if (drafts.length) {
+    const dead = drafts.filter((d) => d.obsolete)
+    notes.push(dead.length
+      ? t('待审草稿 {0} 个，其中 {1} 个已与库内条目重复（旧稿，批准必然失败）——跑 mem prune-drafts --apply 归档', drafts.length, dead.length)
+      : t('待审草稿 {0} 个（均未入库，等人工 approve/reject）', drafts.length))
+  }
+
   // 阶段 4：可信度/生命周期汇总
   const confidenceSummary = { verified: 0, provisional: 0, 'needs-review': 0, stale: 0, disputed: 0 }
   const stateSummary = {}
@@ -2164,7 +2311,8 @@ function print(text = '') { process.stdout.write(text + '\n') }
 function usage() {
   print(t('mem.mjs —— 工作区记忆库（根目录：{0}）', memoryRoot()))
   print('  index | inject | list | search <q> [limit] | show <name> | store <file.md|-> [--overwrite] [--force]')
-  print('  forget <name> | review <name> | draft [topic] | drafts | approve <draft> | reject <draft> [reason]')
+  print('  forget <name> | review <name> | draft [topic] | drafts | approve <draft> [--overwrite|--force] | reject <draft> [reason]')
+  print(t('  prune-drafts [--apply]（归档已入库的旧草稿）'))
   print(t('  write-mode [approval|auto-draft|auto-low-risk|off] | explain <name> | verify [name] | search <q> [n] [--two-stage] | feedback <q> <采用,逗号> [原因] | map [name] | gather <q> [budget] | conflicts | resolve <败方> --prefer <胜方> --reason <理由> | global-sync | stats [days] | doctor'))
   print(t('  当前写入模式：{0}', getWriteMode()))
 }
@@ -2197,7 +2345,11 @@ function main(argv) {
       const results = useTwoStage
         ? recallTwoStage(args[0], limit)
         : searchEntries(args[0], limit)
-      if (!useTwoStage) logStat('search', { query: args[0] ?? '', hits: results.length })
+      if (!useTwoStage) logStat('search', {
+        query: args[0] ?? '',
+        hits: results.filter((r) => r.strong && !r.weak).length,
+        weak: results.filter((r) => r.weak).length,
+      })
       if (!results.length) { print(`没有命中：${args[0] ?? ''}`); return 0 }
       for (const r of results) {
         const { entry, score, weak, snippet } = r
@@ -2265,16 +2417,45 @@ function main(argv) {
     case 'drafts': {
       const drafts = listDrafts()
       if (!drafts.length) { print(t('（暂无待审批草稿）')); return 0 }
+      let dead = 0
       for (const d of drafts) {
         const flag = d.problems.length ? t(' ⚠ {0} 处待补', d.problems.length) : ''
-        print(`- ${d.file} :: ${d.name} — ${d.description}${flag}`)
+        // P1：库内已有同名/同内容条目的草稿 = 旧稿，批准必然失败
+        const stale = d.obsolete
+          ? t(' ⛔ 旧稿（{0}）', d.entryExists ? t('库内已有 {0}', d.entryExists) : (d.identical ? t('正文与库内条目完全相同') : t('与 {0} 近重复', d.nearDuplicateOf)))
+          : ''
+        if (d.obsolete) dead += 1
+        print(`- ${d.file} :: ${d.name} — ${d.description}${flag}${stale}`)
       }
-      print(t('共 {0} 个草稿；批准：approve <file>｜拒绝：reject <file> [原因]', drafts.length))
+      print(t('共 {0} 个草稿；批准：approve <file> [--overwrite|--force]｜拒绝：reject <file> [原因]', drafts.length))
+      if (dead) print(t('其中 {0} 个是已入库的旧稿——一条命令归档：prune-drafts --apply', dead))
+      return 0
+    }
+    case 'prune-drafts': {
+      const apply = rest.includes('--apply')
+      const r = pruneObsoleteDrafts({ apply, by: 'cli' })
+      if (!r.targets.length) { print(t('（没有已入库的旧草稿，无需归档）')); return 0 }
+      for (const d of r.targets) {
+        print(t('- {0} :: {1} —— {2}', d.file, d.name, d.entryExists ? t('库内已有 {0}', d.entryExists) : (d.identical ? t('正文与库内条目完全相同') : t('与 {0} 近重复', d.nearDuplicateOf))))
+      }
+      if (!apply) {
+        print(t('共 {0} 个旧草稿（dry-run，未移动）。确认后加 --apply 归档到 archive/。', r.targets.length))
+        return 0
+      }
+      for (const m of r.moved) print(t('[已归档] {0} → {1}', m.file, m.to))
+      print(t('共归档 {0} 个（未硬删，可从 archive/ 捞回）', r.moved.length))
       return 0
     }
     case 'approve': {
-      const r = approveDraft(rest[0], { by: 'cli' })
-      if (!r.ok) { print(t('[失败] {0}', r.problems.join(sepList()))); return 1 }
+      const overwrite = rest.includes('--overwrite')
+      const force = rest.includes('--force')
+      const file = rest.find((a) => !a.startsWith('--'))
+      const r = approveDraft(file, { by: 'cli', overwrite, force })
+      if (!r.ok) {
+        print(t('[失败] {0}', r.problems.join(sepList())))
+        if (r.problems.some((p) => p.includes('已存在') || p.includes('近重复'))) print(t('  旧稿请用 reject 归档（批量：prune-drafts --apply）'))
+        return 1
+      }
       print(t('[已批准] {0} → {1}（索引 {2} 条 / {3} 字节）', r.approvedFrom, r.file, r.index.listed, r.index.bytes))
       autoInject()
       return 0

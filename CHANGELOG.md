@@ -1,5 +1,46 @@
 # Changelog
 
+## Plugin 1.2.2 / Bundle 0.5.2 — 2026-10-01 — honest recall metric, draft reconciliation, single injection
+
+Three fixes found by auditing the plugin against its own claims (each reproduced on a
+real 44-entry book, before and after):
+
+### Fixed
+- **Recall had no relevance floor** — any entry whose score was > 0 was returned, and
+  common-word bigrams ("完全", "存在") always score > 0. A nonsense query therefore returned
+  a full page with no `weak` marker, making the dashboard's "100% hit rate" a tautology
+  (34 of 42 tool recalls returned the maximum 8 hits). `searchEntries` now requires a
+  **strong signal** — whole-phrase hit, ASCII-token hit, full bigram coverage, or
+  ≥ 40% bigram coverage (`LIMITS.gramCoverage`) — and the weak fallback needs a share of
+  the query's characters that scales with query length. Verified: `zzzqqq` / `的了吗呢吧` /
+  `页面打开一片空白什么都没有` now return 0 hits, while real keyword queries
+  (`重启服务`, `槽口`, `ESM`, `沙箱`, `plugin-slot-version-mismatch`…) keep theirs.
+- **Hit rate counted noise as success** — `hits` meant "rows returned" (>0 almost always).
+  Telemetry now records strong hits and weak hits separately, so `hits: 0` is a real miss
+  and the settings card's hit rate measures something.
+- **Drafts were never reconciled with the book** (dead-letter box) — of the 9 pending
+  drafts on the real book, 7 were already stored (2 byte-identical) and approving any of
+  them could only fail ("already exists" / near-duplicate gate), while the counter only
+  grew. `listDrafts()` now reports `entryExists` / `identical` / `nearDuplicateOf` /
+  `obsolete`, `approveDraft` names the dead end and accepts `--overwrite` / `--force`, and
+  the new `prune-drafts [--apply]` archives already-stored drafts to `archive/obsolete.*`
+  (dry-run by default, never hard-deletes). `doctor` reports the split.
+
+### Changed
+- **The index is no longer injected twice.** The plugin's prompt section and the
+  `AGENTS.md` `mem-inject` block both carried it (2026 B/13 entries vs 2004 B/11 entries —
+  they differed because AGENTS.md links carry an 8-byte prefix), costing a duplicate copy
+  of tokens every turn and reporting two different numbers. With `injectMode: auto`
+  (default) the plugin yields to a live AGENTS.md block and only registers its own section
+  when that carrier is missing; `always` / `never` override.
+- `stats.jsonl` rotates by age past 1 MB and `.memory/backup/` is capped at 20 `AGENTS.md`
+  backups (it previously grew by one full copy per memory write).
+
+### Added
+- `prune-drafts [--apply]` (CLI) and `/memory prune-drafts [--apply]` (17th subcommand).
+- Tests: `test/memory-drafts-reconcile.test.mjs`, a relevance-floor + honest-stats test,
+  and brute-force equivalence now covers the new floor (78 tests total).
+
 ## Plugin 1.2.1 / Bundle 0.5.1 — 2026-09-30 — README rewritten, bilingual-only docs
 
 Documentation pass: both READMEs rewritten to describe what v0.5.0 actually ships

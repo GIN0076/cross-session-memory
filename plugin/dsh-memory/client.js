@@ -48,9 +48,11 @@ window.__ModuleLoader__.load({
       healthNotes: '（{0} 条信息级提示）',
       confidence: '可信度分布',
       drafts: '待审草稿',
+      draftsMixed: '{0}（其中 {1} 是已入库旧稿）',
       conflicts: '未裁决冲突',
       recall: '近 7 天召回',
-      recallHit: '命中率 {0}%（{1} 次搜索，{2} 命中 / {3} 落空）',
+      recallHit: '命中率 {0}%（{1} 次搜索，真命中 {2} / 落空 {3}）',
+      recallWeak: '（另有 {0} 次只拿到弱命中——泛词兜底，不算命中）',
       recallNone: '近 7 天无搜索',
       stores: '写入 {0} 次',
       recent: '最近条目',
@@ -62,9 +64,10 @@ window.__ModuleLoader__.load({
       noHit: '无命中。换 2~3 组词再搜（原词 / 同义 / 英文）。',
       searchFailed: '搜索失败：',
       why: '为何召回',
-      cmdHint: '维护命令：/memory recall|save|doctor|review|map|conflicts|resolve|explain|verify|feedback|stats|draft|drafts|approve|reject|write-mode',
+      cmdHint: '维护命令：/memory recall|save|doctor|review|map|conflicts|resolve|explain|verify|feedback|stats|draft|drafts|approve|reject|prune-drafts|write-mode',
       empty: '（空）',
       unverified: '未标注',
+      weakHit: '弱命中',
       healthSep: '：',
       whySep: '：',
       querySep: '：',
@@ -88,9 +91,11 @@ window.__ModuleLoader__.load({
       healthNotes: ' ({0} informational notes)',
       confidence: 'Confidence mix',
       drafts: 'Pending drafts',
+      draftsMixed: '{0} ({1} already in the book)',
       conflicts: 'Unresolved conflicts',
       recall: 'Recall, last 7 days',
-      recallHit: 'Hit rate {0}% ({1} searches, {2} hits / {3} misses)',
+      recallHit: 'Hit rate {0}% ({1} searches, {2} real hits / {3} misses)',
+      recallWeak: ' (+{0} searches returned only weak hits — not counted as hits)',
       recallNone: 'No searches in the last 7 days',
       stores: '{0} writes',
       recent: 'Recent entries',
@@ -102,9 +107,10 @@ window.__ModuleLoader__.load({
       noHit: 'No hits. Try 2–3 different words (original / synonym / English).',
       searchFailed: 'Search failed: ',
       why: 'Why recalled',
-      cmdHint: 'Commands: /memory recall|save|doctor|review|map|conflicts|resolve|explain|verify|feedback|stats|draft|drafts|approve|reject|write-mode',
+      cmdHint: 'Commands: /memory recall|save|doctor|review|map|conflicts|resolve|explain|verify|feedback|stats|draft|drafts|approve|reject|prune-drafts|write-mode',
       empty: '(empty)',
       unverified: 'unmarked',
+      weakHit: 'weak hit',
       healthSep: ': ',
       whySep: ': ',
       querySep: ': ',
@@ -258,7 +264,7 @@ window.__ModuleLoader__.load({
         h('div', { style: token.grid },
           h(Stat, { label: t('writeMode'), value: data.writeMode, color: data.writeMode === 'approval' ? undefined : 'var(--dsw-alias-state-warn-primary)' }),
           h(Stat, { label: t('entries'), value: data.entryCount }),
-          h(Stat, { label: t('drafts'), value: data.draftCount, color: data.draftCount > 0 ? 'var(--dsw-alias-state-warn-primary)' : undefined }),
+          h(Stat, { label: t('drafts'), value: data.draftObsolete > 0 ? t('draftsMixed', data.draftCount, data.draftObsolete) : data.draftCount, color: data.draftObsolete > 0 ? 'var(--dsw-alias-state-error-primary)' : (data.draftCount > 0 ? 'var(--dsw-alias-state-warn-primary)' : undefined) }),
           h(Stat, { label: t('conflicts'), value: data.conflictCount, color: data.conflictCount > 0 ? 'var(--dsw-alias-state-error-primary)' : undefined })),
 
         // index budget
@@ -284,6 +290,7 @@ window.__ModuleLoader__.load({
               s.hitRate === null || s.hitRate === undefined
                 ? t('recallNone')
                 : t('recallHit', s.hitRate, s.searches, s.hits, s.misses)),
+            s.weak > 0 ? h('div', { style: token.muted }, t('recallWeak', s.weak)) : null,
             h('div', { style: token.muted }, t('stores', s.stores ?? 0)))),
 
         // search (read-only)
@@ -316,6 +323,9 @@ window.__ModuleLoader__.load({
                       ' ',
                       h('span', { style: { ...token.chip, color: confColor(x.confidence), borderColor: confColor(x.confidence) } },
                         x.state || x.confidence || t('unverified')),
+                      x.weak
+                        ? h('span', { style: { ...token.chip, color: 'var(--dsw-alias-label-secondary)', borderColor: 'var(--dsw-alias-border-l1)' } }, t('weakHit'))
+                        : null,
                       x.description ? h('span', { style: token.muted }, ' — ' + x.description) : null),
                     x.snippet ? h('div', { style: token.muted }, t('why') + t('whySep') + (x.why || x.snippet)) : null))))
           : null,

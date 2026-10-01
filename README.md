@@ -26,13 +26,13 @@
   <img alt="dependencies zero" src="https://img.shields.io/badge/dependencies-zero-00e5ff?style=for-the-badge&labelColor=10173a">
   <img alt="runtime Node 18+" src="https://img.shields.io/badge/runtime-Node%20%E2%89%A5%2018-ff2fd6?style=for-the-badge&labelColor=10173a">
   <img alt="memory budget 2KB" src="https://img.shields.io/badge/memory%20budget-2KB-ffd60a?style=for-the-badge&labelColor=10173a">
-  <img alt="commands 23" src="https://img.shields.io/badge/commands-23-a86bff?style=for-the-badge&labelColor=10173a">
-  <img alt="tests 70" src="https://img.shields.io/badge/tests-70%20green-22b07d?style=for-the-badge&labelColor=10173a">
+  <img alt="commands 24" src="https://img.shields.io/badge/commands-24-a86bff?style=for-the-badge&labelColor=10173a">
+  <img alt="tests 78" src="https://img.shields.io/badge/tests-78%20green-22b07d?style=for-the-badge&labelColor=10173a">
   <img alt="plugin DeepSeek Harness" src="https://img.shields.io/badge/plugin-DeepSeek%20Harness-00ffa3?style=for-the-badge&labelColor=10173a">
 </div>
 
-> ### 🧠 `TOOLS/MEM.MJS` · **23 COMMANDS** · `NODE ZERO-DEP`
-> **`index · inject · list · search · show · store · forget · review · draft · drafts · approve · reject · write-mode · explain · verify · feedback · map · gather · conflicts · resolve · global-sync · stats · doctor`**
+> ### 🧠 `TOOLS/MEM.MJS` · **24 COMMANDS** · `NODE ZERO-DEP`
+> **`index · inject · list · search · show · store · forget · review · draft · drafts · approve · reject · prune-drafts · write-mode · explain · verify · feedback · map · gather · conflicts · resolve · global-sync · stats · doctor`**
 >
 > ### 🧩 `PLUGIN/DSH-MEMORY` · **DEEPSEEK HARNESS PLUGIN**
 > **`mem_recall` · `mem_save` · `/memory recall|save|doctor|review|map|conflicts|resolve|explain|verify|feedback|stats|draft|drafts|approve|reject|write-mode`**
@@ -66,7 +66,7 @@
 <td align="center" width="20%"><img src="./assets/icons/retrievable.svg" width="56" alt="RETRIEVABLE IDF 3-way search"><br><b>RETRIEVABLE<br>IDF 3-way search</b></td>
 <td align="center" width="20%"><img src="./assets/icons/audited.svg" width="56" alt="AUDITED evidence chain enforced"><br><b>AUDITED<br>evidence chain enforced</b></td>
 <td align="center" width="20%"><img src="./assets/icons/auto-inject.svg" width="56" alt="AUTO-INJECT ≤2KB per session"><br><b>AUTO-INJECT<br>≤2KB per session</b></td>
-<td align="center" width="20%"><img src="./assets/icons/one-command.svg" width="56" alt="ONE COMMAND 23-command CLI"><br><b>ONE COMMAND<br>23-command CLI + plugin</b></td>
+<td align="center" width="20%"><img src="./assets/icons/one-command.svg" width="56" alt="ONE COMMAND 24-command CLI"><br><b>ONE COMMAND<br>24-command CLI + plugin</b></td>
 </tr>
 </table>
 
@@ -85,7 +85,7 @@ Harness UI.
 | Memory in context | `mem inject` block in `AGENTS.md` | prompt section every turn (≤ 2 KB, fail-degrade) |
 | Search from the agent | run `mem.mjs search` via shell | `mem_recall` tool (lesson book **+ session full-text**) |
 | Write a lesson | `mem.mjs store` via shell | `mem_save` tool — gated by the write mode |
-| Human maintenance | `mem.mjs` commands | `/memory …` (16 subcommands) |
+| Human maintenance | `mem.mjs` commands | `/memory …` (17 subcommands) |
 | At a glance | `mem doctor` | **read-only Settings card** — status, confidence mix, recall hit-rate, entry search |
 
 **What landed recently** (see [`CHANGELOG.md`](./CHANGELOG.md)):
@@ -157,7 +157,7 @@ Agent Lesson Book takes the opposite bet:
 | 🔌 | **`mem_recall` tool** | Lesson book ∪ **past-session full-text** in one call |
 | ✍️ | **`mem_save` tool** | Writes gated by the write mode; `approval` always asks a human first |
 | 🎛 | **Write modes** | `approval / auto-draft / auto-low-risk / off` — tune prompts vs automation; humans never gated |
-| 💬 | **`/memory` command** | 16 subcommands from the chat box; typing one **is** the approval |
+| 💬 | **`/memory` command** | 17 subcommands from the chat box; typing one **is** the approval |
 | 🎯 | IDF-ranked 3-way search | Literal ∪ CJK bigram/unigram ∪ `aliases` synonyms; rare terms win |
 | 🔁 | **Two-stage recall + feedback** | Candidates rerank by confidence, freshness and what you actually used |
 | 🔍 | **`explain` / `verify`** | See *why* an entry is trusted; re-run whitelisted evidence checks |
@@ -327,7 +327,7 @@ Verification：Re-test returns 1898 → 1898 byte-identical (see `tools/mem.mjs`
 | prompt section | lesson index ≤ 2 KB, every turn, fail-degrade |
 | `mem_recall <query> [limit]` | lesson book ∪ session full-text, merged & ranked |
 | `mem_save <content>` | write one lesson — gated by the write mode (`approval` always asks) |
-| `/memory <subcommand>` | 16 maintenance subcommands — typing one **is** the approval |
+| `/memory <subcommand>` | 17 maintenance subcommands — typing one **is** the approval |
 | Settings card | read-only status · confidence · hit-rate · search |
 
 ---
@@ -340,7 +340,7 @@ Verification：Re-test returns 1898 → 1898 byte-identical (see `tools/mem.mjs`
                     │  *.md lessons · MEMORY.md index · stats   │
                     └────────────────────┬──────────────────────┘
                                          │
-                              tools/mem.mjs  (engine, 23 commands)
+                              tools/mem.mjs  (engine, 24 commands)
                                          │
                               tools/mem-core.mjs  (facade)
                           promptIndexText · formatRecall · saveAndSync
@@ -363,7 +363,7 @@ cross-session-memory/
 ├── README.md · README.zh-CN.md
 ├── LICENSE · CHANGELOG.md · .gitignore
 ├── tools/
-│   ├── mem.mjs            # the 23-command engine (single file, zero deps)
+│   ├── mem.mjs            # the 24-command engine (single file, zero deps)
 │   └── mem-core.mjs       # shared facade — the single entry for plugin & CLI
 ├── plugin/dsh-memory/     # DeepSeek Harness bundle (Plugin Edition)
 │   ├── index.js           #   prompt injection · mem_recall · mem_save · /memory
